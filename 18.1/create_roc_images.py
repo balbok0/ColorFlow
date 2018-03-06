@@ -57,6 +57,6 @@ y_pred = model.predict(x)
 print y_pred.shape
 methods.roc_curve(y_pred, y, "Herwig Dipole", "SM", "chartreuse")
 plt.title("Herwig Dipole SM ROC Curve")
-plt.legend(loc=4)
+plt.legend(loc=3)
 plt.savefig("images/" + "Herwig Dipole SM ROC")
 plt.show()

@@ -1,28 +1,31 @@
 import networks as net
-import gc
 import h5py
 import numpy as np
 import pickle
 from keras.callbacks import ModelCheckpoint
 from keras.models import load_model
+from keras.utils.io_utils import HDF5Matrix
+from keras.backend import clear_session
+import os
+from methods import *
 
 '''
 - WZ is 1, QCD/JZ is 0
-- TO DO: You messed up Pythia Vincia. Retrain. ROC curves
+- TO DO:
+    - Analysis of kernel size, including using vertical kernel instead of square one.
+    - Consider LaNET for Herwig Dipole. See whether that wouldn't underfit.
 - Done:
-    -   Sherpa
-    -   Herwig Angular/Dipole
+    -   Dropout analysis, set to 0.5. Kernel analysis, set to (3, 3).
+    -   Statistics for all generators are the same.
+    -   Herwig Dipole
+    -   Pythia Standard
     -   Model Visualization
 '''
 
-with h5py.File("data/Pythia/Vincia/qcd_vincia_j1p0_sj0p30_delphes_jets_pileup_images.h5", 'r') as f:
-    x0 = np.array(f['images'][550000:])
-print x0.shape
-with h5py.File("data/Pythia/Vincia/w_vincia_j1p0_sj0p30_delphes_jets_pileup_images.h5", 'r') as f:
-    x1 = np.array(f['images'][550000:])
-print x1.shape
-# gen_used = "Sherpa"
-gen_used = "Pythia Vincia"
+drop = 0.5
+kernel = (3, 3)
+gen_used = "Sherpa"
+# gen_used = "Pythia Vincia"
 # gen_used = "Pythia Standard"
 # gen_used = "Herwig Angular"
 # gen_used = "Herwig Dipole"
@@ -32,53 +35,47 @@ model_name = "SM"
 # model_name = "lanet2"
 # model_name = "lanet3"
 
-'''
-00 - 60%   - training
-60 - 80%   - validation
-80 - 100%  - test
-'''
-x0tr = int(len(x0) * 0)
-x0val = int(len(x0) * 0.6)
-x0test = int(len(x0) * 0.8)
-x1tr = int(len(x1) * 0)
-x1val = int(len(x1) * 0.6)
-x1test = int(len(x1) * 0.8)
-xtr = np.concatenate((x0[x0tr:x0val], x1[x1tr:x1val]))
-xval = np.concatenate((x0[x0val:x0test], x1[x1val:x1test]))
 
-# Free up memory. Needed, otherwise MemoryError is raised
-del x0, x1
-gc.collect()
+def model_trainer(model_name, generator, dropout=0.5, kernel_size=(3, 3), saving=True):
+    # Figures out which path to use, whether it's from usb or 'data/' sub-folder.
+    # Creates path to data.h5 file for a generator chosen above.
+    file_path = get_ready_names()[generator]
 
-# ZERO PADS. Since python does not allow passing by reference. Has to be done here
-xval = np.concatenate((np.zeros(([len(xval), 25, 4])), xval), axis=2)
-xval = np.concatenate((xval, np.zeros(([len(xval), 25, 4]))), axis=2)
+    # Data loading.
+    xtr = HDF5Matrix(file_path, 'train/x')
+    ytr = HDF5Matrix(file_path, 'train/y')
+    xval = HDF5Matrix(file_path, 'val/x')
+    yval = HDF5Matrix(file_path, 'val/y')
 
-xval = np.concatenate((np.zeros(([len(xval), 4, 33])), xval), axis=1)
-xval = np.concatenate((xval, np.zeros(([len(xval), 4, 33]))), axis=1)
-# ZERO PADS
-xtr = np.concatenate((np.zeros(([len(xtr), 25, 4])), xtr), axis=2)
-xtr = np.concatenate((xtr, np.zeros(([len(xtr), 25, 4]))), axis=2)
+    # Model loading.
+    # First line option: Create new model. Overwrite last one, if exists.
+    # Second line option: Load model trained before.
+    model = net.get_model(model_name, dropout, kernel_size)
+    # model = load_model("models/validated " + model_name + " " + generator)
+    model.summary()
 
-xtr = np.concatenate((np.zeros(([len(xtr), 4, 33])), xtr), axis=1)
-xtr = np.concatenate((xtr, np.zeros(([len(xtr), 4, 33]))), axis=1)
+    # training
+    callback = []
+    if saving:
+        callback = [ModelCheckpoint(filepath="models/validated " + model_name + " " +
+                                             generator,save_best_only=True)]
+    history = model.fit(x=xtr, y=ytr, epochs=20,
+                        callbacks=callback, validation_data=(xval, yval), shuffle='batch')
 
-xtr = xtr[..., np.newaxis]
-xval = xval[..., np.newaxis]
+    if saving:
+        model.save("models/" + model_name + " " + generator)
 
-ytr = np.concatenate((np.zeros(x0val - x0tr), np.ones(x1val - x1tr)))
-yval = np.concatenate((np.zeros(x0test - x0val), np.ones((x1test - x1val))))
 
-# MODEL LOADING
-model = net.get_model(model_name)
-# model = load_model("models/best_" + model_name + "_" + gen_used)
-model.summary()
+    if os.path.exists('models_data/' + model_name + "_history_" + generator + ".p"):
+        with open('models_data/' + model_name + "_history_" + generator + ".p", 'r') as file_pi:
+            previous = pickle.load(file_pi)
+            current = combine_dict(previous, history.history)
+        with open('models_data/' + model_name + "_history_" + generator + ".p", 'wb') as file_pi:
+            pickle.dump(current, file_pi)
+    else:
+        with open('models_data/' + model_name + "_history_" + generator + ".p", 'wb') as file_pi:
+            pickle.dump(history.history, file_pi)
+    clear_session()
 
-history = model.fit(x=xtr, y=ytr, epochs=5,
-                    callbacks=[ModelCheckpoint(filepath="models/best_" + model_name + "_" +
-                                                        gen_used, save_best_only=True)],
-                    validation_data=(xval, yval), shuffle=True)
 
-model.save("models/" + model_name + " " + gen_used)
-with open('models_data/' + model_name + "_history_" + gen_used + "2.p", 'wb') as file_pi:
-    pickle.dump(history.history, file_pi)
+model_trainer(model_name, gen_used, drop, kernel)
