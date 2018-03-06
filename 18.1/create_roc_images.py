@@ -1,11 +1,21 @@
-import h5py
-from keras.models import load_model
-import numpy as np
-import methods
-import matplotlib.pyplot as plt
+from methods import roc_curve
+from get_fnames import *
+gen_used = "Sherpa"
+# gen_used = "Pythia Vincia"
+# gen_used = "Pythia Standard"
+# gen_used = "Herwig Angular"
+# gen_used = "Herwig Dipole"
 
-model = load_model("models/best_SM_Herwig Dipole")
+model_name = "SM"
+# model_name = "lanet"
+# model_name = "lanet2"
+# model_name = "lanet3"
 
+for gen in generators:
+    if not ['Pythia Standard', 'Sherpa', 'Herwig Dipole', 'Herwig Angular'].__contains__(gen):
+        roc_curve(model_name, gen)
+
+'''
 with h5py.File("data/Sherpa/WZ_combined_j1p0_sj0p30_delphes_jets_pileup_images.h5", 'r') as f:
     x1 = np.array(f['images'])
     x1 = x1[int(len(x1)*0.8):]
@@ -60,3 +70,4 @@ plt.title("Herwig Dipole SM ROC Curve")
 plt.legend(loc=3)
 plt.savefig("images/" + "Herwig Dipole SM ROC")
 plt.show()
+'''

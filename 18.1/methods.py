@@ -27,24 +27,29 @@ def roc_curves(model_name):
 def roc_curve(model_name, model_generator):
     colors = get_colors()
     files = get_ready_names()
-    model = get_model_names('SM')[model_generator]
+    print model_generator
+    model = "models/validated {} {}".format(model_name, model_generator)
+    print model
     model = load_model(model)
     for gen, gen_path in files.iteritems():
-        y_predicted = model.predict(HDF5Matrix(gen_path, 'test/x'))
+        print 'Creating curve for {}'.format(gen)
+        y_predicted = model.predict(HDF5Matrix(gen_path, 'test/x'), verbose=1)
         y_true = HDF5Matrix(gen_path, 'test/y')
         _single_roc_curve(y_true, y_predicted, colors[gen], gen)
 
     plt.xlabel("False Positive Rate")
     plt.ylabel("True Positive Rate")
-    plt.plot([0, 1], [0, 1], 'r--')
-    plt.title(model_name + " ROC Curve")
+    plt.plot([0, 1], [0, 1], 'r--', label='Luck')
+    plt.title(model_name + " " + model_generator + " ROC Curve")
+    plt.legend(loc=4)
     plt.savefig("images/ROC Curve " + model_name + " " + model_generator)
-    plt.show()
-    plt.close()
+    plt.clf()
 
 
 # Helper for roc_curves, roc_curve. Allows to put a curve for one model, one data set.
 def _single_roc_curve(y_actual, y_pred, color, generator):
+    y_actual = np.array(y_actual, dtype=np.float64)
+    y_pred = np.array(y_pred, dtype=np.float64)
     auc = sklearn.metrics.roc_auc_score(y_actual, y_pred)
     tpr, fpr, thr = sklearn.metrics.roc_curve(y_true=y_actual, y_score=y_pred, pos_label=1)
     plt.plot(tpr, fpr, color=color, label=generator + ' (AUC = %0.4f)' % auc)
@@ -61,6 +66,8 @@ def combine_dict(dict1, dict2):
     return dict_result
 
 
+# Creates both loss and accuracy learning curves for validation and training data.
+# Requires dict_data to has keys: 'acc', 'loss', 'val_acc', 'val_loss'
 def graph_learning_curves(dict_data, name):
     assert dict_data.keys() == ['acc', 'loss', 'val_acc', 'val_loss']
     ax = plt.figure().gca()
@@ -90,6 +97,9 @@ def graph_learning_curves(dict_data, name):
     plt.show()
 
 
+# Creates histograms from 2 datasets. Requires both files to have 'auxvars' dictionary,
+# and following meta-vars: "pT", "pT Trimmed", "Mass", "Mass Trimmed", "subJet dR", "Tau 1", "Tau 2", "Tau 3"
+# order matters.
 def make_histograms(fname0, fname1):
     names = ["pT", "pT Trimmed", "Mass", "Mass Trimmed", "subJet dR", "Tau 1", "Tau 2", "Tau 3"]
     with h5py.File(fname0, 'r') as f:

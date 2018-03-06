@@ -1,28 +1,7 @@
 from methods import *
 from get_fnames import get_raw_names
 import time
-
-
-# Show an average image of array from file fname.
-# Shows an image with output_name title, and saves it as output_name.
-def avg_img(gen):
-    fname = get_raw_names()[gen]
-    ts = time.time()
-    data0 = HDF5Matrix(fname[0], 'images')
-    np.save('images/avg_img/' + gen + " 0", mean(data0))
-    print "Time it took for 0\'s of " + gen + " " + "{:.3}".format(time.time()-ts) + "s"
-
-    ts = time.time()
-    data1 = HDF5Matrix(fname[1], 'images')
-    np.save('images/avg_img/' + gen + " 1", mean(data1))
-    print 'Time it took for 1\'s of ' + gen + " " + "{:.3}".format(time.time()-ts) + "s"
-    # plt.xlabel("Prop. to pseudorapidity")
-    # plt.ylabel("Prop. to translated azimuthal angle")
-    # plt.title(output_name)
-    # plt.colorbar(fig)
-    # plt.savefig("images/average " + output_name)
-    # plt.show()
-    # plt.close()
+from matplotlib import pyplot as plt
 
 
 def mean(data):
@@ -34,22 +13,96 @@ def mean(data):
             sum[i].append(0.0)
     sum = np.array(sum, dtype=np.float64)
     for i in range(split_n):
-        temp = data[i*1000:i*1000+1000]
-        sum = np.add(sum, temp)
-    return np.divide(sum, data.shape[0])
+        temp = data[i*1000:(i+1)*1000]
+        sum = np.add(sum, np.sum(temp, axis=0))
+    return np.divide(sum, np.sum(sum))
 
 
-#avg_img("data/Sherpa/JZ_combined_j1p0_sj0p30_delphes_jets_pileup_images.h5", "Sherpa JZ")
-#avg_img("data/Sherpa/WZ_combined_j1p0_sj0p30_delphes_jets_pileup_images.h5", "Sherpa WZ")
+# Show an average image of array from file fname.
+# Shows an image with output_name title, and saves it as output_name.
+def avg_img_npy(gen):
+    fname = get_raw_names()[gen]
 
-#avg_img("data/Pythia/Vincia/qcd_vincia_j1p0_sj0p30_delphes_jets_pileup_images.h5", "Pythia Vincia QCD")
-#avg_img("data/Pythia/Vincia/w_vincia_j1p0_sj0p30_delphes_jets_pileup_images.h5", "Pythia Vincia W")
+    data0 = HDF5Matrix(fname[0], 'images')
+    ts = time.time()
+    np.save('images/avg_img/npy/' + gen + " Singlet", mean(data0))
+    print "Time it took for Singlet of {} was {:.3f}s.".format(gen, time.time()-ts) + "s"
 
-#avg_img("data/Herwig/Angular/JZ_combined_j1p0_sj0p30_delphes_jets_pileup_images.h5", "Herwig Angular JZ")
-#avg_img("data/Herwig/Angular/WZ_combined_j1p0_sj0p30_delphes_jets_pileup_images.h5", "Herwig Angular WZ")
+    data1 = HDF5Matrix(fname[1], 'images')
+    ts = time.time()
+    np.save('images/avg_img/npy/' + gen + " Octet", mean(data1))
+    print "Time it took for Octet of {} was {:.3f}s.".format(gen, time.time()-ts) + "s"
 
-#avg_img("data/Herwig/Dipole/QCD_Dipole250-300_j1p0_sj0p30_delphes_jets_images.h5", "Herwig Dipole QCD")
-#avg_img("data/Herwig/Dipole/WZ_combined_j1p0_sj0p30_delphes_jets_images.h5", "Herwig Dipole WZ")
 
-for gen in generators:
-    avg_img(gen)
+# for gen in generators:
+#     avg_img_npy(gen)
+
+def show_img(array):
+    array = np.reshape(array, [25, 25])
+    fig = plt.imshow(array, cmap=plt.get_cmap('seismic'))
+    plt.xlabel("Prop. to translated azimuthal angle")
+    plt.ylabel("Prop. to pseudorapidity")
+    plt.colorbar(fig)
+
+
+def avg_img(name):
+    path_to_npy = 'images/avg_img/npy/'
+    singlet = np.ma.log(np.load(path_to_npy + name + " Singlet.npy"))
+    octet = np.ma.log(np.load(path_to_npy + name + " Octet.npy"))
+
+    singlet = np.subtract(singlet, np.mean(singlet))
+    octet = np.subtract(octet, np.mean(octet))
+
+    singlet = np.ma.masked_where(singlet < -10, singlet)
+    octet = np.ma.masked_where(octet < -10, octet)
+
+    show_img(octet)
+    plt.title(name + " Octet")
+    plt.savefig("images/avg_img/average " + name + " Octet")
+    plt.show()
+    plt.close()
+
+    show_img(singlet)
+    plt.title(name + " Singlet")
+    # plt.savefig("images/avg_img/average " + name + " Singlet")
+    plt.show()
+    plt.close()
+
+    show_img(np.subtract(octet, singlet))
+    plt.title(name + " Octet minus Singlet")
+    # plt.savefig("images/avg_img/average " + name + " Octet minus Singlet")
+    plt.show()
+    plt.close()
+
+
+def avg_dif_img(name1, name2):
+    path_to_npy = 'images/avg_img/npy/'
+
+    singlet1 = np.ma.log(np.load(path_to_npy + name1 + " Singlet.npy"))
+    octet1 = np.ma.log(np.load(path_to_npy + name1 + " Octet.npy"))
+
+    singlet2 = np.ma.log(np.load(path_to_npy + name2 + " Singlet.npy"))
+    octet2 = np.ma.log(np.load(path_to_npy + name2 + " Octet.npy"))
+
+    show_img(np.subtract(octet1, octet2))
+    plt.title(name1 + " minus " + name2 + " Octet")
+    # plt.savefig("images/avg_img/differences/average " + name1 + " minus " + name2 + " Octet")
+    plt.show()
+    plt.close()
+
+    show_img(np.subtract(singlet1, singlet2))
+    plt.title(name1 + " minus " + name2 + " Singlet")
+    # plt.savefig("images/avg_img/differences/average " + name1 + " minus " + name2 + " Singlet")
+    plt.show()
+    plt.close()
+
+
+# for i in generators:
+#    avg_img_npy(i)
+
+for i in generators:
+    avg_img(i)
+
+# for i in range(len(generators)):
+#     for j in range(i + 1, len(generators)):
+#         avg_dif_img(generators[i], generators[j])

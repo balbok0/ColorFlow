@@ -24,6 +24,7 @@ from methods import *
 
 drop = 0.5
 kernel = (3, 3)
+
 gen_used = "Sherpa"
 # gen_used = "Pythia Vincia"
 # gen_used = "Pythia Standard"

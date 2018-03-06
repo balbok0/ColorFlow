@@ -66,11 +66,11 @@ def get_model_names(model_name):
                           model_name + " " + gen)
     return models
 
-
 # Returns dictionary of colors, for each generator
 def get_colors():
     return dict(zip(generators, ['gold', 'peru', 'navy', 'skyblue', 'grey']))
 
 
+# Returns list of generators.
 def get_generators():
     return generators
