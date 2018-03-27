@@ -26,11 +26,15 @@ def pre_process(x0, x1):
 
 # Implement also large dataset method, which split raw samples
 def raw_data_to_ready_data(fname0, fname1):
+
     ts = time.time()
+
     dir_name = os.path.dirname(fname0)
+
     x0 = h5py.File(fname0)['images']
     x1 = h5py.File(fname1)['images']
     x0, x1, x0tr, x1tr, x0val, x1val = pre_process(x0, x1)
+
     with h5py.File(dir_name + '/data.h5', 'w') as h:
         t = h.create_group('test')
         t.create_dataset('x', data=np.concatenate((x0[x0val:], x1[x1val:])))
@@ -44,9 +48,11 @@ def raw_data_to_ready_data(fname0, fname1):
     x1 = x1[:x1tr]
     x0 = np.reshape(x0, [len(x0), 625])
     x1 = np.reshape(x1, [len(x1), 625])
+
     s = SMOTE()
     x, y = s.fit_sample(np.concatenate((x0, x1)), np.concatenate((np.zeros(len(x0)), np.ones(len(x1)))))
     del x0, x1
+
     x, y = sklearn.utils.shuffle(x, y)
     x = np.reshape(x, [len(x), 25, 25])
     with h5py.File(dir_name + '/data.h5', 'a') as h:
@@ -135,6 +141,7 @@ def test_dimensions(fname):
             for v in f[k].keys():
                 print k, v, "shape is", f[k][v].shape
 
+
 def large_raw_data_to_ready_data(max_size, fname0, fname1):
     ts = time.time()
     dir_name = os.path.dirname(fname0)
@@ -173,9 +180,12 @@ def large_raw_data_to_ready_data(max_size, fname0, fname1):
     print ""
     test_dimensions(dir_name + "/data.h5")
 
-large_raw_data_to_ready_data(10000,"/media/balbok/Seagate Expansion Drive/Research/raw data/Herwig/Dipole/QCD_Dipole250-300_j1p0_sj0p30_delphes_jets_images.h5",
-                             "/media/balbok/Seagate Expansion Drive/Research/raw data/Herwig/Dipole/WZ_combined_j1p0_sj0p30_delphes_jets_images.h5")
-#large_raw_data_to_ready_data(10000,"/media/balbok/Seagate Expansion Drive/Research/raw data/Pythia/Vincia/qcd_vincia_j1p0_sj0p30_delphes_jets_pileup_images.h5",
+
+# large_raw_data_to_ready_data(10000, '/media/balbok/Seagate Expansion Drive/Research/raw data/Sherpa/JZ_combined_j1p0_sj0p30_delphes_jets_pileup_images.h5',
+#                            '/media/balbok/Seagate Expansion Drive/Research/raw data/Sherpa/WZ_combined_j1p0_sj0p30_delphes_jets_pileup_images.h5')
+# large_raw_data_to_ready_data(10000,"/media/balbok/Seagate Expansion Drive/Research/raw data/Herwig/Dipole/QCD_Dipole250-300_j1p0_sj0p30_delphes_jets_images.h5",
+#                             "/media/balbok/Seagate Expansion Drive/Research/raw data/Herwig/Dipole/WZ_combined_j1p0_sj0p30_delphes_jets_images.h5")
+# large_raw_data_to_ready_data(10000,"/media/balbok/Seagate Expansion Drive/Research/raw data/Pythia/Vincia/qcd_vincia_j1p0_sj0p30_delphes_jets_pileup_images.h5",
 #                             "/media/balbok/Seagate Expansion Drive/Research/raw data/Pythia/Vincia/w_vincia_j1p0_sj0p30_delphes_jets_pileup_images.h5")
-#large_raw_data_to_ready_data(10000,"/media/balbok/Seagate Expansion Drive/Research/raw data/Pythia/Standard/qcd_j1p0_sj0p30_delphes_jets_pileup_images.h5",
+# large_raw_data_to_ready_data(10000,"/media/balbok/Seagate Expansion Drive/Research/raw data/Pythia/Standard/qcd_j1p0_sj0p30_delphes_jets_pileup_images.h5",
 #                             "/media/balbok/Seagate Expansion Drive/Research/raw data/Pythia/Standard/w_j1p0_sj0p30_delphes_jets_pileup_images.h5")

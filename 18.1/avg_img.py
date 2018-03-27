@@ -3,6 +3,8 @@ from get_fnames import get_raw_names
 import time
 from matplotlib import pyplot as plt
 
+# color maps in matplotlib: https://matplotlib.org/examples/color/colormaps_reference.html
+
 
 def mean(data):
     split_n = int(np.ceil(len(data) / 1000.0))

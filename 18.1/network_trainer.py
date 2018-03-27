@@ -12,22 +12,21 @@ from methods import *
 '''
 - WZ is 1, QCD/JZ is 0
 - TO DO:
-    - Analysis of kernel size, including using vertical kernel instead of square one.
     - Consider LaNET for Herwig Dipole. See whether that wouldn't underfit.
+    - Metavariable network
 - Done:
     -   Dropout analysis, set to 0.5. Kernel analysis, set to (3, 3).
     -   Statistics for all generators are the same.
-    -   Herwig Dipole
-    -   Pythia Standard
+    -   All generators, except for Pythia Standard
     -   Model Visualization
 '''
 
 drop = 0.5
 kernel = (3, 3)
 
-gen_used = "Sherpa"
+# gen_used = "Sherpa"
 # gen_used = "Pythia Vincia"
-# gen_used = "Pythia Standard"
+gen_used = "Pythia Standard"
 # gen_used = "Herwig Angular"
 # gen_used = "Herwig Dipole"
 
@@ -60,7 +59,7 @@ def model_trainer(model_name, generator, dropout=0.5, kernel_size=(3, 3), saving
     if saving:
         callback = [ModelCheckpoint(filepath="models/validated " + model_name + " " +
                                              generator,save_best_only=True)]
-    history = model.fit(x=xtr, y=ytr, epochs=20,
+    history = model.fit(x=xtr, y=ytr, epochs=2,
                         callbacks=callback, validation_data=(xval, yval), shuffle='batch')
 
     if saving:

@@ -47,12 +47,12 @@ def roc_curve(model_name, model_generator):
 
 
 # Helper for roc_curves, roc_curve. Allows to put a curve for one model, one data set.
-def _single_roc_curve(y_actual, y_pred, color, generator):
+def _single_roc_curve(y_actual, y_pred, color, name):
     y_actual = np.array(y_actual, dtype=np.float64)
     y_pred = np.array(y_pred, dtype=np.float64)
     auc = sklearn.metrics.roc_auc_score(y_actual, y_pred)
     tpr, fpr, thr = sklearn.metrics.roc_curve(y_true=y_actual, y_score=y_pred, pos_label=1)
-    plt.plot(tpr, fpr, color=color, label=generator + ' (AUC = %0.4f)' % auc)
+    plt.plot(tpr, fpr, color=color, label=name + ' (AUC = %0.4f)' % auc)
 
 
 # Takes two dictionaries, with THE SAME keys (Throws error otherwise)
