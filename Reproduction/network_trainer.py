@@ -7,6 +7,7 @@ import os
 
 # based on: https://arxiv.org/abs/1609.00607
 
+
 def network_trainer(gen):
     fname = data()[gen]
     x_train = HDF5Matrix(fname, 'train/x')
