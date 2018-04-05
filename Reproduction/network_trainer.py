@@ -6,7 +6,11 @@ from get_file_names import get_ready_names as data
 import os
 
 # based on: https://arxiv.org/abs/1609.00607
-
+generator = 'Pythia Standard'
+# generator = 'Pythia Vincia'
+# generator = 'Sherpa'
+# generator = 'Herwig Angular'
+# generator = 'Herwig Dipole'
 
 def network_trainer(gen):
     fname = data()[gen]
@@ -32,4 +36,4 @@ def network_trainer(gen):
     clear_session()
 
 
-network_trainer('Herwig Dipole')
+network_trainer(generator)
