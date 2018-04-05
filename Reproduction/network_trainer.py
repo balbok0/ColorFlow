@@ -12,6 +12,7 @@ generator = 'Pythia Standard'
 # generator = 'Herwig Angular'
 # generator = 'Herwig Dipole'
 
+
 def network_trainer(gen):
     fname = data()[gen]
     x_train = HDF5Matrix(fname, 'train/x')
