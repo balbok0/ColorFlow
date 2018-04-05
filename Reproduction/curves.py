@@ -7,6 +7,11 @@ import numpy as np
 import pickle
 from get_file_names import *
 
+'''
+TO DO:
+    - gen / gen_i subplot under main ROC.
+'''
+
 learning_curve_data_dir = 'models_data/'
 learning_curve_images_dir = 'learning_curves/'
 
@@ -56,10 +61,7 @@ def create_learning_curve(gen):
     plt.savefig('{d}Learning Curve {g} - Loss.png'.format(d=learning_curve_images_dir, g=gen))
     plt.show()
 
-'''
-TO DO:
-    - gen / gen_i subplot under main ROC.
-'''
+
 # Produces ROC Curves, as defined in paper: https://arxiv.org/abs/1609.00607
 def create_roc_curve(gen):
     assert gen in generators
