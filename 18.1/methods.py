@@ -115,8 +115,10 @@ def make_histograms(fname0, fname1):
         x1 = np.reshape(x1, [len(x1)/8, 8])
 
     for j in range(8):
-        plt.hist(x=x0[:, j], log=False, histtype='step', color='r', bins=50, label="QCD/JZ")
-        plt.hist(x=x1[:, j], log=False, histtype='step', color='g', bins=50, label="WZ")
+        plt.hist(x=x0[:, j], log=False, histtype='step',
+                 color='r', bins=50, label="QCD/JZ")
+        plt.hist(x=x1[:, j], log=False, histtype='step',
+                 color='g', bins=50, label="WZ")
         plt.title(names[j])
         plt.legend(loc='upper right')
         plt.show()

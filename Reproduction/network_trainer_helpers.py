@@ -19,13 +19,13 @@ def net():
     return model
 
 
-# Needed for LearningRateScheduler
+# Needed for LearningRateScheduler in network_trainer callbacks.
 def lr_schedule(epoch, lr):
     return lr * 0.8
 
 
 # Takes two dictionaries, with THE SAME keys (Throws error otherwise)
-# Returns a dictionary with same keys, and combined values in np array
+# Returns a dictionary with same keys, and combined values in np array.
 def combine_dict(dict1, dict2):
     assert type(dict1) is dict and type(dict2) is dict
     assert dict1.keys() == dict2.keys()
@@ -36,7 +36,7 @@ def combine_dict(dict1, dict2):
 
 
 # Saves history h from model trained on generator gen.
-# Overwrites old history, if such exists
+# Overwrites old history, if such exists.
 def save_history(h, gen):
     assert type(h) is dict
     assert 'acc' in h

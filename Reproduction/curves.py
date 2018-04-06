@@ -63,7 +63,9 @@ def create_learning_curve(gen):
     plt.show()
 
 
-# Helper for roc_curve. Given two arrays, returns indexes from array1 closest to values from array2.
+# Helper for roc_curve.
+# Given two arrays, returns indexes from array1 with values
+# closest to values from array2.
 def find_index_nearest(array1, array2):
     res = []
     for i in array2:
@@ -79,8 +81,11 @@ def create_roc_curve(gen):
     colors = get_colors()
     files = get_ready_names()
 
+    # Needed to create two subplots with different sizes.
+    # If other ratios are needed change height_ratios.
     plt.figure(figsize=(6, 8))
     gs = gridspec.GridSpec(2, 1, height_ratios=[4, 1])
+
     main = plt.subplot(gs[0])
     main.set_yscale('log')
     main.grid(True, color='gray', linestyle='--', linewidth=1, alpha=0.5)
@@ -90,6 +95,8 @@ def create_roc_curve(gen):
 
     model = load_model('{path}{g}'.format(path=models_dir, g=gen))
 
+    # Contain true positive rate (signal efficiency) and false positive rate (background efficiency)
+    # for each generator.
     tprs = {}
     fprs = {}
 
@@ -106,10 +113,13 @@ def create_roc_curve(gen):
 
         main.plot(tpr, fpr, color=colors[gen_i], label='%s (AUC = %0.4f)' % (gen_i, auc))
 
+    # fpr of a generator ROC curve is made of.
     div = fprs[gen]
     for gen_i in tprs.keys():
         curr_fpr = fprs[gen_i]
         curr_tpr = tprs[gen_i]
+        # find_index_nearest is needed, because roc_curve
+        # returns fprs of different length for different generators.
         np.divide(curr_fpr, div[find_index_nearest(fprs[gen], curr_tpr)])
         ratio.plot(tprs[gen_i], fprs[gen_i], color=colors[gen_i])
 

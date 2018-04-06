@@ -1,6 +1,8 @@
 import os
 
+# This is the only line which has to be changed, according to where data is kept.
 drive_path = '/media/balbok/Seagate Expansion Drive/Research/'
+
 generators = ['Herwig Angular', 'Herwig Dipole', 'Sherpa',
               'Pythia Standard', 'Pythia Vincia']
 
@@ -67,7 +69,8 @@ def get_model_names(model_name):
     return models
 
 
-# Returns dictionary of colors, for each generator
+# Returns dictionary of colors, for each generator.
+# Colors are meant to be like ones in paper.
 def get_colors():
     return dict(zip(generators, ['r-.', 'm--', 'gold', 'b', 'g--']))
 
