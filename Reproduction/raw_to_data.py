@@ -1,8 +1,6 @@
 import h5py
 import numpy as np
 import time
-import os
-from imblearn.under_sampling import RandomUnderSampler
 import sklearn.utils
 from get_file_names import *
 
@@ -27,13 +25,13 @@ def helper(x0, x1, dir_name):
     x0, x1, x0tr, x1tr, x0val, x1val = pre_process(x0, x1)
 
     with h5py.File(dir_name + '/data.h5', 'a') as h:
-        xtest = np.concatenate((x0[x0val:], x1[x1val:]))
-        h["test/x"].resize((h["test/x"].shape[0] + len(xtest)), axis=0)
-        h["test/x"][-len(xtest):] = xtest
+        x_test = np.concatenate((x0[x0val:], x1[x1val:]))
+        h["test/x"].resize((h["test/x"].shape[0] + len(x_test)), axis=0)
+        h["test/x"][-len(x_test):] = x_test
 
-        ytest = np.concatenate((np.zeros(len(x0[x0val:])), np.ones(len(x1[x1val:]))))
-        h['test/y'].resize((h["test/y"].shape[0] + len(ytest)), axis=0)
-        h["test/y"][-len(ytest):] = ytest
+        y_test = np.concatenate((np.zeros(len(x0[x0val:])), np.ones(len(x1[x1val:]))))
+        h['test/y'].resize((h["test/y"].shape[0] + len(y_test)), axis=0)
+        h["test/y"][-len(y_test):] = y_test
 
         xval = np.concatenate((x0[x0tr:x0val], x1[x1tr:x1val]))
         h["val/x"].resize((h["val/x"].shape[0] + len(xval)), axis=0)
@@ -60,14 +58,14 @@ def first_helper(x0, x1, dir_name):
     x0, x1, x0tr, x1tr, x0val, x1val = pre_process(x0, x1)
     with h5py.File(dir_name + '/data.h5', 'w') as h:
         t = h.create_group('test')
-        xtest = np.concatenate((x0[x0val:], x1[x1val:]))
-        t.create_dataset('x', data=xtest, shape=xtest.shape, maxshape=([None] + list(xtest.shape[1:])))
-        ytest = np.concatenate((np.zeros(len(x0[x0val:])), np.ones(len(x1[x1val:]))))
-        t.create_dataset('y', data=ytest, shape=ytest.shape, maxshape=[None])
+        x_test = np.concatenate((x0[x0val:], x1[x1val:]))
+        t.create_dataset('x', data=x_test, shape=x_test.shape, maxshape=([None] + list(x_test.shape[1:])))
+        y_test = np.concatenate((np.zeros(len(x0[x0val:])), np.ones(len(x1[x1val:]))))
+        t.create_dataset('y', data=y_test, shape=y_test.shape, maxshape=[None])
 
         t = h.create_group('val')
         xval = np.concatenate((x0[x0tr:x0val], x1[x1tr:x1val]))
-        t.create_dataset('x', data=xval, shape=xval.shape, maxshape=([None] + list(xtest.shape[1:])))
+        t.create_dataset('x', data=xval, shape=xval.shape, maxshape=([None] + list(x_test.shape[1:])))
         yval = np.concatenate((np.zeros(x0val - x0tr), np.ones(x1val - x1tr)))
         t.create_dataset('y', data=yval, shape=yval.shape, maxshape=[None])
 
@@ -78,7 +76,7 @@ def first_helper(x0, x1, dir_name):
 
     with h5py.File(dir_name + '/data.h5', 'a') as h:
         t = h.create_group('train')
-        t.create_dataset('x', data=x, shape=x.shape, maxshape=([None] + list(xtest.shape[1:])))
+        t.create_dataset('x', data=x, shape=x.shape, maxshape=([None] + list(x_test.shape[1:])))
         t.create_dataset('y', data=y, shape=[len(y)], maxshape=[None])
 
 
@@ -106,15 +104,14 @@ def raw_data_to_ready_data(max_size, gen):
     print "Split 1 started"
     ti = time.time()
     first_helper(h5py.File(fname0)['images'][:increment_0],
-                       h5py.File(fname1)['images'][:increment_1],
-                       dir_name)
+                 h5py.File(fname1)['images'][:increment_1], dir_name)
     print "Split 1 ended. It took %0.2f seconds." % (time.time() - ti)
     for i in range(1, splits):
         print "Split", i + 1, "started"
         ti = time.time()
         helper(h5py.File(fname0)['images'][i * increment_0:(i + 1) * increment_0],
-                     h5py.File(fname1)['images'][i * increment_1:(i + 1) * increment_1],
-                     dir_name)
+               h5py.File(fname1)['images'][i * increment_1:(i + 1) * increment_1],
+               dir_name)
         print "Split", i + 1, "ended. It took %0.2f seconds." % (time.time() - ti)
 
     # Print how long it took
