@@ -21,4 +21,3 @@ def make_table(f=sklearn.metrics.roc_auc_score):
             value = f(y_actual, y_pred)
             data[i].append(value)
         i += 1
-

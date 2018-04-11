@@ -1,27 +1,26 @@
-from numpy import ma
 import numpy as np
-import sys
-from get_fnames import *
-from keras.utils.io_utils import HDF5Matrix
-import h5py
+from src.get_fnames import *
+import matplotlib.pyplot as plt
 
+cols = generators
+rows = []
+for i in cols:
+    rows.append(i + ' net')
+a = np.arange(0, 25)
+a = np.reshape(a, [5, 5])
+print a
 
-def distributions(x):
-    c0 = 0
-    c1 = 0
-    for i in x:
-        if i == 0:
-            c0+=1
-        elif i == 1:
-            c1+=1
-    print 'Singlets: ' + str(c0)
-    print 'Octets: ' + str(c1)
+fig, ax = plt.subplots()
 
+# hide axes
+fig.patch.set_visible(False)
+ax.axis('off')
+ax.axis('tight')
 
-for g in generators:
-    fname = get_ready_names()[g]
-    p = ['train', 'val', 'test']
-    for i in p:
-        print g + " " + i
-        with h5py.File(fname) as h:
-            distributions(h[i + '/y'])
+ax.table(cellText=a, colLabels=cols, rowLabels=rows, loc='right')
+
+fig.tight_layout()
+
+mng = plt.get_current_fig_manager()
+mng.full_screen_toggle()
+plt.show()
