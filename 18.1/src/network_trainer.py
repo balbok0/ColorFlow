@@ -11,14 +11,6 @@ from methods import *
 
 '''
 - WZ is 1, QCD/JZ is 0
-- TO DO:
-    - Consider LaNET for Herwig Dipole. See whether that wouldn't underfit.
-- Done:
-    -   Dropout analysis, set to 0.5. Kernel analysis, set to (3, 3).
-    -   Statistics for all generators are the same.
-    -   All generators, except for Pythia Standard
-    -   Model Visualization
-    -   Metavariable network
 '''
 
 drop = 0.5

@@ -6,11 +6,12 @@ from get_file_names import get_ready_names as data
 import os
 
 # based on: https://arxiv.org/abs/1609.00607
-generator = 'Pythia Standard'
+
+# generator = 'Pythia Standard'
 # generator = 'Pythia Vincia'
 # generator = 'Sherpa'
 # generator = 'Herwig Angular'
-# generator = 'Herwig Dipole'
+generator = 'Herwig Dipole'
 
 
 def network_trainer(gen):
@@ -26,7 +27,7 @@ def network_trainer(gen):
     calls = [LearningRateScheduler(lr_schedule), EarlyStopping(patience=10)]
 
     hist = model.fit(x=x_train, y=y_train, validation_data=(x_val, y_val),
-                     batch_size=100, epochs=100, shuffle='batch', callbacks=calls)
+                     batch_size=100, epochs=20, shuffle='batch', callbacks=calls)
 
     model_path = 'models/'
     if not os.path.exists(model_path):
