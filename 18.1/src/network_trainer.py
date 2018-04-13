@@ -16,6 +16,9 @@ from methods import *
 drop = 0.5
 kernel = (3, 3)
 
+model_save_dir = '../models/'
+model_data_save_dir = '../models_data/'
+
 # gen_used = "Sherpa"
 # gen_used = "Pythia Vincia"
 gen_used = "Pythia Standard"
@@ -23,6 +26,8 @@ gen_used = "Pythia Standard"
 # gen_used = "Herwig Dipole"
 
 model_name = "SM"
+
+
 # model_name = "lanet"
 # model_name = "lanet2"
 # model_name = "lanet3"
@@ -46,26 +51,26 @@ def model_trainer(model_type, generator, dropout=0.5, kernel_size=(3, 3), saving
     # model = load_model("models/validated " + model_name + " " + generator)
     model.summary()
 
-    # training
+    # Preparing callbacks, in terms of saving
     callback = []
     if saving:
-        callback = [ModelCheckpoint(filepath="models/validated " + model_type + " " +
-                                             generator, save_best_only=True)]
+        callback.append(ModelCheckpoint(filepath=model_save_dir + "/validated " + model_type + " " +
+                                    generator, save_best_only=True))
+
     history = model.fit(x=xtr, y=ytr, epochs=20,
                         callbacks=callback, validation_data=(xval, yval), shuffle='batch')
 
+    # Saves the model from last epoch
     if saving:
-        model.save("models/" + model_type + " " + generator)
+        model.save(model_save_dir + model_type + " " + generator)
 
-    if os.path.exists('models_data/' + model_type + "_history_" + generator + ".p"):
-        with open('models_data/' + model_type + "_history_" + generator + ".p", 'r') as file_pi:
-            previous = pickle.load(file_pi)
-            current = combine_dict(previous, history.history)
-        with open('models_data/' + model_type + "_history_" + generator + ".p", 'wb') as file_pi:
-            pickle.dump(current, file_pi)
-    else:
-        with open('models_data/' + model_type + "_history_" + generator + ".p", 'wb') as file_pi:
-            pickle.dump(history.history, file_pi)
+    # Saves learning data (accuracy and loss on default)
+    if not os.path.exists(model_data_save_dir):
+        os.makedirs(model_data_save_dir)
+    with open(model_data_save_dir + model_type + "_history_" + generator + ".p", 'wb') as file_pi:
+        pickle.dump(history.history, file_pi)
+
+    # Needed for memory leak
     clear_session()
 
 
