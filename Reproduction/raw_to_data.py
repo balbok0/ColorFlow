@@ -33,13 +33,13 @@ def helper(x0, x1, dir_name):
         h['test/y'].resize((h["test/y"].shape[0] + len(y_test)), axis=0)
         h["test/y"][-len(y_test):] = y_test
 
-        xval = np.concatenate((x0[x0tr:x0val], x1[x1tr:x1val]))
-        h["val/x"].resize((h["val/x"].shape[0] + len(xval)), axis=0)
-        h["val/x"][-len(xval):] = xval
+        x_val = np.concatenate((x0[x0tr:x0val], x1[x1tr:x1val]))
+        h["val/x"].resize((h["val/x"].shape[0] + len(x_val)), axis=0)
+        h["val/x"][-len(x_val):] = x_val
 
-        yval = np.concatenate((np.zeros(x0val - x0tr), np.ones(x1val - x1tr)))
-        h['val/y'].resize((h["val/y"].shape[0] + len(yval)), axis=0)
-        h["val/y"][-len(yval):] = yval
+        y_val = np.concatenate((np.zeros(x0val - x0tr), np.ones(x1val - x1tr)))
+        h['val/y'].resize((h["val/y"].shape[0] + len(y_val)), axis=0)
+        h["val/y"][-len(y_val):] = y_val
 
     x0 = x0[:x0tr]
     x1 = x1[:x1tr]
@@ -64,10 +64,10 @@ def first_helper(x0, x1, dir_name):
         t.create_dataset('y', data=y_test, shape=y_test.shape, maxshape=[None])
 
         t = h.create_group('val')
-        xval = np.concatenate((x0[x0tr:x0val], x1[x1tr:x1val]))
-        t.create_dataset('x', data=xval, shape=xval.shape, maxshape=([None] + list(x_test.shape[1:])))
-        yval = np.concatenate((np.zeros(x0val - x0tr), np.ones(x1val - x1tr)))
-        t.create_dataset('y', data=yval, shape=yval.shape, maxshape=[None])
+        x_val = np.concatenate((x0[x0tr:x0val], x1[x1tr:x1val]))
+        t.create_dataset('x', data=x_val, shape=x_val.shape, maxshape=([None] + list(x_test.shape[1:])))
+        y_val = np.concatenate((np.zeros(x0val - x0tr), np.ones(x1val - x1tr)))
+        t.create_dataset('y', data=y_val, shape=y_val.shape, maxshape=[None])
 
     x0 = x0[:x0tr]
     x1 = x1[:x1tr]
@@ -80,7 +80,7 @@ def first_helper(x0, x1, dir_name):
         t.create_dataset('y', data=y, shape=[len(y)], maxshape=[None])
 
 
-# Implements also large dataset method, which splits raw samples into max_size ones, and saves them continuously.
+# Implements also large data set method, which splits raw samples into max_size ones, and saves them continuously.
 def raw_data_to_ready_data(max_size, gen):
     ts = time.time()
     fname0, fname1 = get_raw_names()[gen]

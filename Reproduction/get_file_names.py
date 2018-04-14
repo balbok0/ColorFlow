@@ -60,9 +60,10 @@ def get_toy_names():
 # If they do not exist, raises IOError.
 def get_model_names(model_name):
     models = {}
+    models_path = 'models/'
     for gen in generators:
-        if os.path.exists("models/validated " + model_name + " " + gen):
-            models[gen] = ("models/validated " + model_name + " " + gen)
+        if os.path.exists("{path}validated {mod} {g}".format(path=models_path, mod=model_name, g=gen)):
+            models[gen] = ("{path}validated {mod} {g}".format(path=models_path, mod=model_name, g=gen))
         else:
             raise IOError(gen + " model not found. Should be in form: models/validated " +
                           model_name + " " + gen)

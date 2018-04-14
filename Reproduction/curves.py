@@ -24,7 +24,7 @@ def create_learning_curve(gen):
     assert gen in generators
     assert os.path.exists("{d}history_{g}.p".format(d=learning_curve_data_dir, g=gen))
 
-    data = pickle.load(open("models_data/history_{g}.p".format(g=gen)))
+    data = pickle.load(open("{path}history_{g}.p".format(path=learning_curve_data_dir, g=gen)))
 
     assert data.keys() == ['acc', 'loss', 'val_acc', 'val_loss']
 

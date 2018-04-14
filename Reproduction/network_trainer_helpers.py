@@ -4,6 +4,7 @@ import numpy as np
 import pickle
 import os
 
+dir_path = 'models_data/'
 
 # Returns a model described by: https://arxiv.org/pdf/1609.00607.pdf
 def net():
@@ -44,7 +45,6 @@ def save_history(h, gen):
     assert 'val_loss' in h
     assert 'loss' in h
 
-    dir_path = 'models_data/'
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
     f_path = "{path}history_{g}.p".format(path=dir_path, g=gen)
