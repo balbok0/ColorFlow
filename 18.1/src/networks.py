@@ -2,6 +2,7 @@ from keras.layers import Conv2D, MaxPool2D, BatchNormalization, Flatten, Dense, 
 from keras.models import Sequential
 from keras.optimizers import Adam
 
+
 # All models as described in http://cs231n.stanford.edu/reports/2016/pdfs/300_Report.pdf.
 
 
@@ -141,9 +142,8 @@ def _lanet2(p, kernel_size, dense_size=128):
     model.add(Dropout(p))
     model.add(Dense(1, activation='sigmoid'))
 
-
-    # opt = Adam(lr=0.00005)
-    # model.compile(optimizer=opt, loss='binary_crossentropy', metrics=['accuracy'])
+    opt = Adam(lr=0.00005)
+    model.compile(optimizer=opt, loss='binary_crossentropy', metrics=['accuracy'])
     return model
 
 

@@ -47,7 +47,7 @@ def get_ready_names():
 def get_toy_names():
     files = {}
     for gen in generators:
-        gen_path = 'toy/' + gen.replace(' ', '/') + '/data.h5'
+        gen_path = '../toy/' + gen.replace(' ', '/') + '/data.h5'
         if not os.path.exists(gen_path):
             raise IOError("Generator " + gen + " not found, at path: " + gen_path)
         files[gen] = gen_path
@@ -56,15 +56,16 @@ def get_toy_names():
 
 # Returns dictionary of model type for all generators.
 # If they do not exist, raises IOError.
-def get_model_names(model_name):
+def get_model_names(model_type):
     models = {}
     for gen in generators:
-        if os.path.exists("models/validated " + model_name + " " + gen):
-            models[gen] = ("models/validated " + model_name + " " + gen)
+        if os.path.exists("../models/validated " + model_type + " " + gen):
+            models[gen] = ("../models/validated " + model_type + " " + gen)
         else:
-            raise IOError(gen + " model not found. Should be in form: models/validated " +
-                          model_name + " " + gen)
+            raise IOError(gen + " model not found. Should be in form: ../models/validated " +
+                          model_type + " " + gen)
     return models
+
 
 # Returns dictionary of colors, for each generator
 def get_colors():

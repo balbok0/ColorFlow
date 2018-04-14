@@ -12,6 +12,6 @@ model_name = "SM"
 # model_name = "lanet2"
 # model_name = "lanet3"
 
-data = pickle.load(open('models_data/{model}_history_combined.p'
+data = pickle.load(open('../models_data/{model}_history_combined.p'
                         .format(model=model_name)))
 graph_learning_curves(data, model_name + " combined")

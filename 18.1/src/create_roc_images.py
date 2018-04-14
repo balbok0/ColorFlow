@@ -12,5 +12,5 @@ model_name = "SM"
 # model_name = "lanet3"
 
 for gen in generators:
-    if not ['Pythia Standard', 'Sherpa', 'Herwig Dipole', 'Herwig Angular'].__contains__(gen):
+    if gen not in ['Pythia Standard', 'Sherpa', 'Herwig Dipole', 'Herwig Angular']:
         roc_curve(model_name, gen)

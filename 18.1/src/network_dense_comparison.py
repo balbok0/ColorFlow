@@ -15,10 +15,10 @@ kernel = (3, 3)
 # gen_used = "Herwig Angular"
 gen_used = "Herwig Dipole"
 
-model_name = "SM"
-# model_name = "lanet"
-# model_name = "lanet2"
-# model_name = "lanet3"
+model_type = "SM"
+# model_type = "lanet"
+# model_type = "lanet2"
+# model_type = "lanet3"
 
 
 def model_trainer(model_name, generator, dropout=0.5, kernel_size=(3, 3), dense_size=128,
@@ -43,29 +43,29 @@ def model_trainer(model_name, generator, dropout=0.5, kernel_size=(3, 3), dense_
     # training
     callback = []
     if saving:
-        if not os.path.exists('toy_models'):
-            os.makedirs('toy_models')
-        callback = [ModelCheckpoint(filepath="toy_models/validated " + model_name + " " +
+        if not os.path.exists('../toy_models'):
+            os.makedirs('../toy_models')
+        callback = [ModelCheckpoint(filepath="../toy_models/validated " + model_name + " " +
                                              generator + str(dropout), save_best_only=True)]
     history = model.fit(x=xtr, y=ytr, epochs=20, verbose=2, callbacks=callback, validation_data=(xval, yval),
                         shuffle='batch')
 
     if saving:
-        model.save("toy_models/" + model_name + " " + generator + str(dropout))
+        model.save("../toy_models/" + model_name + " " + generator + str(dropout))
 
-    if os.path.exists('toy_models_data/' + model_name + "_history_" + generator + str(dropout) + ".p"):
-        with open('toy_models_data/' + model_name + "_history_" + generator + str(dropout) + ".p", 'r') as file_pi:
+    if os.path.exists('../toy_models_data/' + model_name + "_history_" + generator + str(dropout) + ".p"):
+        with open('../toy_models_data/' + model_name + "_history_" + generator + str(dropout) + ".p", 'r') as file_pi:
             previous = pickle.load(file_pi)
             current = combine_dict(previous, history.history)
-        with open('toy_models_data/' + model_name + "_history_" + generator + str(dropout) + ".p", 'wb') as file_pi:
+        with open('../toy_models_data/' + model_name + "_history_" + generator + str(dropout) + ".p", 'wb') as file_pi:
             pickle.dump(current, file_pi)
     else:
-        if not os.path.exists('toy_models_data/'):
-            os.makedirs('toy_models_data')
-        with open('toy_models_data/' + model_name + "_history_" + generator + str(dropout) + ".p", 'wb') as file_pi:
+        if not os.path.exists('../toy_models_data/'):
+            os.makedirs('../toy_models_data')
+        with open('../toy_models_data/' + model_name + "_history_" + generator + str(dropout) + ".p", 'wb') as file_pi:
             pickle.dump(history.history, file_pi)
     clear_session()
 
 
 for d in [0.3, 0.4, 0.6, 0.7]:
-    model_trainer(model_name, gen_used, dropout=d)
+    model_trainer(model_type, gen_used, dropout=d)

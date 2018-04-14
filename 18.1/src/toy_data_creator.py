@@ -3,7 +3,7 @@ from get_fnames import *
 from os.path import exists
 from os import mkdir, makedirs
 
-toy_path = 'toy'
+toy_path = '../toy'
 toy_size = 1000
 f_paths = get_ready_names()
 print f_paths

@@ -5,7 +5,7 @@ import sklearn.metrics
 from matplotlib.ticker import MaxNLocator
 from keras.utils.io_utils import HDF5Matrix
 from keras.models import load_model
-from get_fnames import *
+from get_fnames import get_colors, get_generators, get_ready_names, get_raw_names
 
 
 # Zero pads images from 25x25 to 33x33x1.
@@ -28,7 +28,7 @@ def roc_curve(model_name, model_generator):
     colors = get_colors()
     files = get_ready_names()
     print model_generator
-    model = "models/validated {} {}".format(model_name, model_generator)
+    model = "../models/validated {} {}".format(model_name, model_generator)
     print model
     model = load_model(model)
     for gen, gen_path in files.iteritems():
@@ -42,7 +42,7 @@ def roc_curve(model_name, model_generator):
     plt.plot([0, 1], [0, 1], 'r--', label='Luck')
     plt.title(model_name + " " + model_generator + " ROC Curve")
     plt.legend(loc=4)
-    plt.savefig("images/ROC Curve " + model_name + " " + model_generator)
+    plt.savefig("../images/ROC Curve {model_type} {gen}".format(model_type=model_name, gen=model_generator))
     plt.clf()
 
 
@@ -80,7 +80,7 @@ def graph_learning_curves(dict_data, name):
     plt.xlabel('Epochs')
     plt.ylabel('Accuracy percentage')
     ax.xaxis.set_major_locator(MaxNLocator(nbins=len(dict_data['acc']), integer=True))
-    plt.savefig('images/learning curves/Learning Curve ' + name + ' - Accuracy.png')
+    plt.savefig('../images/learning curves/Learning Curve ' + name + ' - Accuracy.png')
     plt.show()
 
     ax = plt.figure().gca()
@@ -93,15 +93,17 @@ def graph_learning_curves(dict_data, name):
     plt.xlabel('Epochs')
     plt.ylabel('Binary Crossentropy')
     ax.xaxis.set_major_locator(MaxNLocator(nbins=len(dict_data['acc']), integer=True))
-    plt.savefig('images/learning curves/Learning Curve ' + name + ' - Loss.png')
+    plt.savefig('../images/learning curves/Learning Curve {} - Loss.png'.format(name))
     plt.show()
 
 
 # Creates histograms from 2 datasets. Requires both files to have 'auxvars' dictionary,
 # and following meta-vars: "pT", "pT Trimmed", "Mass", "Mass Trimmed", "subJet dR", "Tau 1", "Tau 2", "Tau 3"
 # order matters.
-def make_histograms(fname0, fname1):
+def make_histograms(generator):
+    fname0, fname1 = get_raw_names()[generator]
     names = ["pT", "pT Trimmed", "Mass", "Mass Trimmed", "subJet dR", "Tau 1", "Tau 2", "Tau 3"]
+
     with h5py.File(fname0, 'r') as f:
         x = np.array(f['auxvars'])
         x0 = [i for lst in x for i in lst]
@@ -121,4 +123,5 @@ def make_histograms(fname0, fname1):
                  color='g', bins=50, label="WZ")
         plt.title(names[j])
         plt.legend(loc='upper right')
+        plt.savefig('{gen} {meta_var}.png'.format(gen=generator, meta_var=names[j]))
         plt.show()

@@ -11,7 +11,7 @@ def make_table(f=sklearn.metrics.roc_auc_score):
     i = 0
     for g in generators:
         data.append([])
-        model = load_model("models/validated {} {}".format('SM', g))
+        model = load_model("../models/validated {} {}".format('SM', g))
         for g_i in generators:
             y_pred = model.predict(HDF5Matrix(get_ready_names()[g_i], 'test/x'))
             y_pred = np.array(y_pred, dtype=np.float64)
