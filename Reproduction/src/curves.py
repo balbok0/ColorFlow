@@ -8,23 +8,18 @@ import numpy as np
 import pickle
 from get_file_names import *
 
-'''
-TO DO:
-    - gen / gen_i subplot under main ROC.
-'''
-
-learning_curve_data_dir = 'models_data/'
-learning_curve_images_dir = 'learning_curves/'
-
-models_dir = 'models/'
+learn_curve_data_dir = '../models_data/'
+learn_curve_img_dir = '../learning_curves/'
+roc_img_dir = '../ROC/'
+models_dir = '../models/'
 
 
 # Produces learning curves of given generator
 def create_learning_curve(gen):
     assert gen in generators
-    assert os.path.exists("{d}history_{g}.p".format(d=learning_curve_data_dir, g=gen))
+    assert os.path.exists("{d}history_{g}.p".format(d=learn_curve_data_dir, g=gen))
 
-    data = pickle.load(open("{path}history_{g}.p".format(path=learning_curve_data_dir, g=gen)))
+    data = pickle.load(open("{path}history_{g}.p".format(path=learn_curve_data_dir, g=gen)))
 
     assert data.keys() == ['acc', 'loss', 'val_acc', 'val_loss']
 
@@ -43,7 +38,7 @@ def create_learning_curve(gen):
     plt.ylabel('Accuracy percentage')
     ax.xaxis.set_major_locator(MaxNLocator(nbins=len(data['acc']), integer=True))
 
-    plt.savefig('{d}Learning Curve {g} - Accuracy.png'.format(d=learning_curve_images_dir, g=gen))
+    plt.savefig('{d}Learning Curve {g} - Accuracy.png'.format(d=learn_curve_img_dir, g=gen))
     plt.show()
 
     # Loss
@@ -59,7 +54,7 @@ def create_learning_curve(gen):
     plt.ylabel('Binary Crossentropy')
     ax.xaxis.set_major_locator(MaxNLocator(nbins=len(data['acc']), integer=True))
 
-    plt.savefig('{d}Learning Curve {g} - Loss.png'.format(d=learning_curve_images_dir, g=gen))
+    plt.savefig('{d}Learning Curve {g} - Loss.png'.format(d=learn_curve_img_dir, g=gen))
     plt.show()
 
 
@@ -77,6 +72,9 @@ def find_index_nearest(array1, array2):
 def create_roc_curve(gen):
     assert gen in generators
     assert os.path.exists('{path}{g}'.format(path=models_dir, g=gen))
+
+    if not os.path.exists(roc_img_dir):
+        os.makedirs(roc_img_dir)
 
     colors = get_colors()
     files = get_ready_names()
@@ -129,6 +127,6 @@ def create_roc_curve(gen):
     main.set_title("ROC Curve for model trained on {}".format(gen))
     main.legend(loc=1, frameon=False)
     plt.tight_layout()
-    plt.savefig("images/ROC Curve %s" % gen)
+    plt.savefig("%sROC Curve %s" % roc_img_dir, gen)
     plt.clf()
     print 'ROC Curve for {} successfully created.'.format(gen)

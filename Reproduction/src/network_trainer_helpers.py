@@ -4,7 +4,7 @@ import numpy as np
 import pickle
 import os
 
-dir_path = 'models_data/'
+dir_path = '../models_data/'
 
 # Returns a model described by: https://arxiv.org/pdf/1609.00607.pdf
 def net():

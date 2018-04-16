@@ -7,7 +7,7 @@ import os
 
 # based on: https://arxiv.org/abs/1609.00607
 
-model_path = 'models/'
+model_path = '../models/'
 
 # generator = 'Pythia Standard'
 # generator = 'Pythia Vincia'
