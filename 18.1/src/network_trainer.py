@@ -1,10 +1,8 @@
 import networks as net
-import h5py
-import numpy as np
 import pickle
+from keras.utils.io_utils import HDF5Matrix
 from keras.callbacks import ModelCheckpoint
 from keras.models import load_model
-from keras.utils.io_utils import HDF5Matrix
 from keras.backend import clear_session
 import os
 from methods import *
@@ -41,8 +39,8 @@ def model_trainer(model_type, generator, dropout=0.5, kernel_size=(3, 3), saving
     # Data loading.
     xtr = HDF5Matrix(file_path, 'train/x')
     ytr = HDF5Matrix(file_path, 'train/y')
-    xval = HDF5Matrix(file_path, 'val/x')
-    yval = HDF5Matrix(file_path, 'val/y')
+    x_val = HDF5Matrix(file_path, 'val/x')
+    y_val = HDF5Matrix(file_path, 'val/y')
 
     # Model loading.
     # First line option: Create new model. Overwrite last one, if exists.
@@ -54,11 +52,11 @@ def model_trainer(model_type, generator, dropout=0.5, kernel_size=(3, 3), saving
     # Preparing callbacks, in terms of saving
     callback = []
     if saving:
-        callback.append(ModelCheckpoint(filepath=model_save_dir + "/validated " + model_type + " " +
-                                    generator, save_best_only=True))
+        callback.append(ModelCheckpoint(filepath=model_save_dir + "/validated " + model_type + " " + generator,
+                                        save_best_only=True))
 
     history = model.fit(x=xtr, y=ytr, epochs=20,
-                        callbacks=callback, validation_data=(xval, yval), shuffle='batch')
+                        callbacks=callback, validation_data=(x_val, y_val), shuffle='batch')
 
     # Saves the model from last epoch
     if saving:
