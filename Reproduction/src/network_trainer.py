@@ -1,10 +1,12 @@
-from keras.callbacks import LearningRateScheduler, EarlyStopping, ModelCheckpoint
-from keras.utils import HDF5Matrix
-from keras.utils.io_utils import HDF5Matrix
-from keras.backend import clear_session
-from network_trainer_helpers import net, save_history
-from get_file_names import get_ready_names as data
 import os
+
+from keras.backend import clear_session
+from keras.callbacks import LearningRateScheduler, EarlyStopping, ModelCheckpoint
+from keras.utils.io_utils import HDF5Matrix
+from keras.utils.np_utils import to_categorical
+
+from get_file_names import get_ready_names as data
+from network_trainer_helpers import net, save_history
 
 # based on: https://arxiv.org/abs/1609.00607
 
@@ -20,9 +22,9 @@ generator = 'Herwig Dipole'
 def network_trainer(gen):
     fname = data()[gen]
     x_train = HDF5Matrix(fname, 'train/x')
-    y_train = HDF5Matrix(fname, 'train/y')
+    y_train = to_categorical(HDF5Matrix(fname, 'train/y'), 2)
     x_val = HDF5Matrix(fname, 'val/x')
-    y_val = HDF5Matrix(fname, 'val/y')
+    y_val = to_categorical(HDF5Matrix(fname, 'val/y'), 2)
 
     model = net()
     model.summary()
@@ -33,7 +35,7 @@ def network_trainer(gen):
                              save_best_only=True, mode='auto')]
 
     hist = model.fit(x=x_train, y=y_train, validation_data=(x_val, y_val),
-                     batch_size=100, epochs=20, shuffle='batch', verbose=2, callbacks=calls)
+                     batch_size=100, epochs=100, shuffle='batch', verbose=2, callbacks=calls)
 
     if not os.path.exists(model_path):
         os.makedirs(model_path)

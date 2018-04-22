@@ -1,8 +1,9 @@
-from keras.models import Sequential
-from keras.layers import MaxoutDense, Dense
-import numpy as np
-import pickle
 import os
+import pickle
+
+import numpy as np
+from keras.layers import MaxoutDense, Dense, Activation
+from keras.models import Sequential
 
 dir_path = '../models_data/'
 
@@ -15,7 +16,8 @@ def net():
 
     model.add(Dense(64, activation='relu'))
     model.add(Dense(25, activation='relu'))
-    model.add(Dense(2, activation='sigmoid'))
+    model.add(Dense(2))
+    model.add(Activation('sigmoid'))
 
     model.compile(optimizer='adam', loss='categorical_crossentropy')
     return model
