@@ -1,7 +1,7 @@
 import os
 
 # This is the only line which has to be changed, according to where data is kept.
-drive_path = '/media/balbok/Seagate Expansion Drive/Research/'
+drive_path = '../Data/'
 
 generators = ['Herwig Angular', 'Herwig Dipole', 'Sherpa',
               'Pythia Standard', 'Pythia Vincia']

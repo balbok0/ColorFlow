@@ -1,7 +1,8 @@
-from keras.callbacks import LearningRateScheduler, EarlyStopping
+from keras.callbacks import LearningRateScheduler, EarlyStopping, ModelCheckpoint
+from keras.utils import HDF5Matrix
 from keras.utils.io_utils import HDF5Matrix
 from keras.backend import clear_session
-from network_trainer_helpers import net, lr_schedule, save_history
+from network_trainer_helpers import net, save_history
 from get_file_names import get_ready_names as data
 import os
 
@@ -26,14 +27,16 @@ def network_trainer(gen):
     model = net()
     model.summary()
 
-    calls = [LearningRateScheduler(lr_schedule), EarlyStopping(patience=10)]
+    calls = [LearningRateScheduler(lambda i: float(0.001*(0.98**i))),
+             EarlyStopping(monitor='val_loss', patience=10, verbose=2, mode='auto'),
+             ModelCheckpoint('../models/{0}.h5'.format(generator), monitor='val_loss', verbose=2,
+                             save_best_only=True, mode='auto')]
 
     hist = model.fit(x=x_train, y=y_train, validation_data=(x_val, y_val),
-                     batch_size=100, epochs=20, shuffle='batch', callbacks=calls)
+                     batch_size=100, epochs=20, shuffle='batch', verbose=2, callbacks=calls)
 
     if not os.path.exists(model_path):
         os.makedirs(model_path)
-    model.save('{path}{g}'.format(path=model_path, g=gen))
 
     save_history(hist.history, gen)
     clear_session()

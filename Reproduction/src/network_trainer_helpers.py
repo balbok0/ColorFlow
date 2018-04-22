@@ -6,23 +6,19 @@ import os
 
 dir_path = '../models_data/'
 
+
 # Returns a model described by: https://arxiv.org/pdf/1609.00607.pdf
 def net():
     model = Sequential()
-    model.add(MaxoutDense(256, input_dim=625))
-    model.add(MaxoutDense(128))
+    model.add(MaxoutDense(256, input_dim=625, nb_feature=5, init='he_uniform'))
+    model.add(MaxoutDense(128, nb_feature=5))
 
     model.add(Dense(64, activation='relu'))
     model.add(Dense(25, activation='relu'))
-    model.add(Dense(1, activation='sigmoid'))
+    model.add(Dense(2, activation='sigmoid'))
 
-    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+    model.compile(optimizer='adam', loss='categorical_crossentropy')
     return model
-
-
-# Needed for LearningRateScheduler in network_trainer callbacks.
-def lr_schedule(epoch, lr):
-    return lr * 0.8
 
 
 # Takes two dictionaries, with THE SAME keys (Throws error otherwise)
