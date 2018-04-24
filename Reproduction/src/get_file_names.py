@@ -1,7 +1,7 @@
 import os
 
 # This is the only line which has to be changed, according to where data is kept.
-drive_path = '../../Data/'
+drive_path = '/home/balbok/Documents/Research/ColorFlow/Data/'
 
 generators = ['Herwig Angular', 'Herwig Dipole', 'Sherpa',
               'Pythia Standard', 'Pythia Vincia']
@@ -17,6 +17,7 @@ def check_drive():
 def get_raw_names():
     files = {}
     raw_dir = drive_path + 'raw data/'
+    print check_drive()
     if check_drive():
         files['Pythia Standard'] = [raw_dir + "Pythia/Standard/qcd_j1p0_sj0p30_delphes_jets_pileup_images.h5",
                                     raw_dir + "Pythia/Standard/w_j1p0_sj0p30_delphes_jets_pileup_images.h5"]

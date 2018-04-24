@@ -30,7 +30,7 @@ def network_trainer(gen):
     model.summary()
 
     calls = [LearningRateScheduler(lambda i: float(0.001*(0.98**i))),
-             EarlyStopping(monitor='val_loss', patience=10, verbose=2, mode='auto'),
+             EarlyStopping(monitor='val_loss', min_delta=0.005, patience=10, verbose=2, mode='auto'),
              ModelCheckpoint('../models/{0}.h5'.format(generator), monitor='val_loss', verbose=2,
                              save_best_only=True, mode='auto')]
 

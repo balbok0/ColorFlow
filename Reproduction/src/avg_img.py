@@ -1,9 +1,11 @@
-from get_file_names import get_raw_names, generators
+import os
+import time
+
+import matplotlib.pyplot as plt
 import numpy as np
 from keras.utils.io_utils import HDF5Matrix
-import time
-import os
-import matplotlib.pyplot as plt
+
+from get_file_names import get_raw_names, generators
 
 path_to_avg = '../images/avg_img/'
 path_to_npy = path_to_avg + 'npy/'
@@ -62,19 +64,19 @@ def avg_img(name):
 
     prep_img(octet)
     plt.title(name + " Octet")
-    plt.savefig(path_to_avg_img + "average " + name + " Octet")
+    plt.savefig(path_to_avg + "average " + name + " Octet")
     plt.show()
     plt.close()
 
     prep_img(singlet)
     plt.title(name + " Singlet")
-    plt.savefig(path_to_avg_img + "average " + name + " Singlet")
+    plt.savefig(path_to_avg + "average " + name + " Singlet")
     plt.show()
     plt.close()
 
     prep_img(np.subtract(octet, singlet))
     plt.title(name + " Octet minus Singlet")
-    plt.savefig(path_to_avg_img + "average " + name + " Octet minus Singlet")
+    plt.savefig(path_to_avg + "average " + name + " Octet minus Singlet")
     plt.show()
     plt.close()
 
@@ -88,18 +90,17 @@ def avg_dif_img(name1, name2):
 
     prep_img(np.subtract(octet1, octet2))
     plt.title(name1 + " minus " + name2 + " Octet")
-    plt.savefig("{path}differences/average {gen1} minus {gen2} Octet".format(path=path_to_avg_img, gen1=name1,
+    plt.savefig("{path}differences/average {gen1} minus {gen2} Octet".format(path=path_to_avg, gen1=name1,
                                                                              gen2=name2))
     plt.show()
     plt.close()
 
     prep_img(np.subtract(singlet1, singlet2))
     plt.title(name1 + " minus " + name2 + " Singlet")
-    plt.savefig("{path}differences/average {gen1} minus {gen2} Singlet".format(path=path_to_avg_img, gen1=name1,
+    plt.savefig("{path}differences/average {gen1} minus {gen2} Singlet".format(path=path_to_avg, gen1=name1,
                                                                                gen2=name2))
     plt.show()
     plt.close()
-
 
 
 for g in generators[3:]:
