@@ -17,7 +17,6 @@ def check_drive():
 def get_raw_names():
     files = {}
     raw_dir = drive_path + 'raw data/'
-    print check_drive()
     if check_drive():
         files['Pythia Standard'] = [raw_dir + "Pythia/Standard/qcd_j1p0_sj0p30_delphes_jets_pileup_images.h5",
                                     raw_dir + "Pythia/Standard/w_j1p0_sj0p30_delphes_jets_pileup_images.h5"]
@@ -26,7 +25,7 @@ def get_raw_names():
         files['Herwig Angular'] = [raw_dir + "Herwig/Angular/JZ_combined_j1p0_sj0p30_delphes_jets_pileup_images.h5",
                                    raw_dir + "Herwig/Angular/WZ_combined_j1p0_sj0p30_delphes_jets_pileup_images.h5"]
         files['Herwig Dipole'] = [raw_dir + "Herwig/Dipole/QCD_Dipole250-300_j1p0_sj0p30_delphes_jets_images.h5",
-                                  raw_dir + "Herwig/Dipole/WZ_combined_j1p0_sj0p30_delphes_jets_images.h5"]
+                                  raw_dir + "Herwig/Dipole/WZ_combined2_j1p0_sj0p30_delphes_jets_images.h5"]
         files['Sherpa'] = [raw_dir + 'Sherpa/JZ_combined_j1p0_sj0p30_delphes_jets_pileup_images.h5',
                            raw_dir + 'Sherpa/WZ_combined_j1p0_sj0p30_delphes_jets_pileup_images.h5']
     else:

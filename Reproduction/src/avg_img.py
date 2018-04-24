@@ -7,22 +7,24 @@ from keras.utils.io_utils import HDF5Matrix
 
 from get_file_names import get_raw_names, generators
 
-path_to_avg = '../images/avg_img/'
+path_to_avg = '/home/balbok/Documents/Research/ColorFlow/Reproduction/images/avg_img/'
 path_to_npy = path_to_avg + 'npy/'
+path_to_single = path_to_avg + 'single'
+path_to_diff = path_to_avg + 'differences/'
 
 
 def _mean(data):
     split_n = int(np.ceil(len(data) / 1000.0))
-    sum = []
+    img_sum = []
     for i in range(25):
-        sum.append([])
+        img_sum.append([])
         for j in range(25):
-            sum[i].append(0.0)
-    sum = np.array(sum, dtype=np.float64)
+            img_sum[i].append(0.0)
+    img_sum = np.array(img_sum, dtype=np.float64)
     for i in range(split_n):
         temp = data[i*1000:(i+1)*1000]
-        sum = np.add(sum, np.sum(temp, axis=0))
-    return np.divide(sum, np.sum(sum))
+        img_sum = np.add(img_sum, np.sum(temp, axis=0))
+    return np.divide(img_sum, np.sum(img_sum))
 
 
 def avg_img_npy(gen):
@@ -62,23 +64,13 @@ def avg_img(name):
     singlet = np.ma.masked_where(singlet < -10, singlet)
     octet = np.ma.masked_where(octet < -10, octet)
 
-    prep_img(octet)
-    plt.title(name + " Octet")
-    plt.savefig(path_to_avg + "average " + name + " Octet")
-    plt.show()
-    plt.close()
-
-    prep_img(singlet)
-    plt.title(name + " Singlet")
-    plt.savefig(path_to_avg + "average " + name + " Singlet")
-    plt.show()
-    plt.close()
-
-    prep_img(np.subtract(octet, singlet))
-    plt.title(name + " Octet minus Singlet")
-    plt.savefig(path_to_avg + "average " + name + " Octet minus Singlet")
-    plt.show()
-    plt.close()
+    data = {'Octet': octet, 'Singlet': singlet, 'Octet minus Singlet': np.subtract(octet, singlet)}
+    for jet, jet_img in data.iteritems():
+        prep_img(jet_img)
+        plt.title("{gen} {t}".format(gen=name, t=jet))
+        plt.savefig("{path}average {gen} {t}".format(path=path_to_single, gen=name, t=jet))
+        plt.show()
+        plt.close()
 
 
 def avg_dif_img(name1, name2):
@@ -90,18 +82,16 @@ def avg_dif_img(name1, name2):
 
     prep_img(np.subtract(octet1, octet2))
     plt.title(name1 + " minus " + name2 + " Octet")
-    plt.savefig("{path}differences/average {gen1} minus {gen2} Octet".format(path=path_to_avg, gen1=name1,
-                                                                             gen2=name2))
+    plt.savefig("{path}average {gen1} minus {gen2} Octet".format(path=path_to_diff, gen1=name1, gen2=name2))
     plt.show()
     plt.close()
 
     prep_img(np.subtract(singlet1, singlet2))
     plt.title(name1 + " minus " + name2 + " Singlet")
-    plt.savefig("{path}differences/average {gen1} minus {gen2} Singlet".format(path=path_to_avg, gen1=name1,
-                                                                               gen2=name2))
+    plt.savefig("{path}average {gen1} minus {gen2} Singlet".format(path=path_to_diff, gen1=name1, gen2=name2))
     plt.show()
     plt.close()
 
 
-for g in generators[3:]:
-    avg_img_npy(g)
+for g in generators:
+    avg_img(g)
