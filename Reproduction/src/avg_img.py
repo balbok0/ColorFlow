@@ -9,7 +9,7 @@ from get_file_names import get_raw_names, generators
 
 path_to_avg = '/home/balbok/Documents/Research/ColorFlow/Reproduction/images/avg_img/'
 path_to_npy = path_to_avg + 'npy/'
-path_to_single = path_to_avg + 'single'
+path_to_single = path_to_avg + 'single/'
 path_to_diff = path_to_avg + 'differences/'
 
 
@@ -55,6 +55,9 @@ def prep_img(array):
 
 
 def avg_img(name):
+    if not os.path.exists(path_to_single):
+        os.makedirs(path_to_single)
+
     singlet = np.ma.log(np.load(path_to_npy + name + " Singlet.npy"))
     octet = np.ma.log(np.load(path_to_npy + name + " Octet.npy"))
 
@@ -74,6 +77,9 @@ def avg_img(name):
 
 
 def avg_dif_img(name1, name2):
+    if not os.path.exists(path_to_diff):
+        os.makedirs(path_to_diff)
+
     singlet1 = np.ma.log(np.load(path_to_npy + name1 + " Singlet.npy"))
     octet1 = np.ma.log(np.load(path_to_npy + name1 + " Octet.npy"))
 
@@ -93,5 +99,7 @@ def avg_dif_img(name1, name2):
     plt.close()
 
 
-for g in generators:
-    avg_img(g)
+for g1 in generators:
+    for g2 in generators:
+        if not g1 == g2:
+            avg_dif_img(g1, g2)
