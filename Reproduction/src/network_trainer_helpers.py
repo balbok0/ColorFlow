@@ -5,7 +5,7 @@ import numpy as np
 from keras.layers import MaxoutDense, Dense, Activation
 from keras.models import Sequential
 
-dir_path = '../models_data/'
+dir_path = 'models_data/'
 
 
 # Returns a model described by: https://arxiv.org/pdf/1609.00607.pdf
@@ -19,7 +19,7 @@ def net():
     model.add(Dense(2))
     model.add(Activation('sigmoid'))
 
-    model.compile(optimizer='adam', loss='categorical_crossentropy')
+    model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
     return model
 
 

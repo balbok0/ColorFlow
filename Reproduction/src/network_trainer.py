@@ -1,5 +1,6 @@
 import os
 
+import h5py as h5
 from keras.backend import clear_session
 from keras.callbacks import LearningRateScheduler, EarlyStopping, ModelCheckpoint
 from keras.utils.io_utils import HDF5Matrix
@@ -14,17 +15,26 @@ model_path = '../models/'
 
 # generator = 'Pythia Standard'
 # generator = 'Pythia Vincia'
-# generator = 'Sherpa'
+generator = 'Sherpa'
 # generator = 'Herwig Angular'
-generator = 'Herwig Dipole'
+# generator = 'Herwig Dipole'
 
 
 def network_trainer(gen):
     fname = data()[gen]
-    x_train = HDF5Matrix(fname, 'train/x')
-    y_train = to_categorical(HDF5Matrix(fname, 'train/y'), 2)
-    x_val = HDF5Matrix(fname, 'val/x')
-    y_val = to_categorical(HDF5Matrix(fname, 'val/y'), 2)
+    try:
+        with h5.File(fname) as hf:
+            x_train = hf['train/x'][()]
+            y_train = to_categorical(hf['train/y'], 2)
+            x_val = hf['val/x'][()]
+            y_val = to_categorical(hf['val/y'], 2)
+        print "Using data loaded into memory"
+    except MemoryError:
+        x_train = HDF5Matrix(fname, 'train/x')
+        y_train = to_categorical(HDF5Matrix(fname, 'train/y'), 2)
+        x_val = HDF5Matrix(fname, 'val/x')
+        y_val = to_categorical(HDF5Matrix(fname, 'val/y'), 2)
+        print "Using data from HDF5Matrix"
 
     model = net()
     model.summary()
@@ -34,7 +44,7 @@ def network_trainer(gen):
 
     calls = [LearningRateScheduler(lambda i: float(0.001*(0.98**i))),
              EarlyStopping(monitor='val_loss', min_delta=0.005, patience=10, verbose=2, mode='auto'),
-             ModelCheckpoint('../models/{0}.h5'.format(generator), monitor='val_loss', verbose=2,
+             ModelCheckpoint('{0}{1}.h5'.format(model_path, generator), monitor='val_loss', verbose=2,
                              save_best_only=True, mode='auto')]
 
     hist = model.fit(x=x_train, y=y_train, validation_data=(x_val, y_val),
