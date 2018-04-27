@@ -6,7 +6,7 @@ from keras.callbacks import LearningRateScheduler, EarlyStopping, ModelCheckpoin
 from keras.utils.io_utils import HDF5Matrix
 from keras.utils.np_utils import to_categorical
 
-from get_file_names import get_ready_names as data
+from get_file_names import get_ready_path
 from network_trainer_helpers import net, save_history
 
 # based on: https://arxiv.org/abs/1609.00607
@@ -21,7 +21,7 @@ generator = 'Sherpa'
 
 
 def network_trainer(gen):
-    fname = data()[gen]
+    fname = get_ready_path(gen)
     try:
         with h5.File(fname) as hf:
             x_train = hf['train/x'][()]

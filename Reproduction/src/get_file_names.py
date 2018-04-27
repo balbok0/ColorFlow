@@ -37,11 +37,8 @@ def get_raw_names():
 # If not, raises IOError.
 def get_ready_names():
     files = {}
-    if check_drive():
-        for gen in generators:
-            files[gen] = drive_path + "reco data/" + gen.replace(' ', '/') + '/data.h5'
-    else:
-        raise IOError("Drive is not inserted.")
+    for gen in generators:
+        files[gen] = get_ready_path(gen)
     return files
 
 
@@ -54,6 +51,13 @@ def get_toy_names():
             raise IOError("Generator " + gen + " not found, at path: " + gen_path)
         files[gen] = gen_path
     return files
+
+
+def get_ready_path(gen):
+    gen_path = drive_path + "reco data/" + gen.replace(' ', '/') + '/data.h5'
+    if not os.path.exists(gen_path):
+        raise IOError("Generator " + gen + " not found, at path: " + gen_path)
+    return gen_path
 
 
 # Returns dictionary of model type for all generators.
