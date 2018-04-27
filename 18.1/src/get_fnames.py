@@ -37,10 +37,15 @@ def get_ready_names():
     files = {}
     if check_drive():
         for gen in generators:
-            files[gen] = drive_path + "ready data/" + gen.replace(' ', '/') + '/data.h5'
-    else:
-        raise IOError("Drive is not inserted.")
+            files[gen] = get_ready_path(gen)
     return files
+
+
+def get_ready_path(gen):
+    path = "{drive}ready data/{gen_path}/data.h5".format(drive=drive_path, gen_path=gen.replace(' ', '/'))
+    if not os.path.exists(path):
+        raise IOError("Drive is not inserted.")
+    return path
 
 
 # Returns paths to toy datasets
