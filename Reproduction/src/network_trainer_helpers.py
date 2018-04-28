@@ -49,3 +49,9 @@ def save_history(h, gen):
 
     with open(f_path, 'wb') as file_pi:
         pickle.dump(h, file_pi)
+
+
+# Approximates memory cost of hdf5 dataset
+def get_memory_size(hdf5_data_set):
+    first = hdf5_data_set[0][()]
+    return len(hdf5_data_set) * first.size * first.itemsize

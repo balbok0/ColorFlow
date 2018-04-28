@@ -1,13 +1,16 @@
 import os
 
+# Data loaders
 import h5py as h5
+import psutil
+# Model loaders, training specific
 from keras.backend import clear_session
 from keras.callbacks import LearningRateScheduler, EarlyStopping, ModelCheckpoint
 from keras.utils.io_utils import HDF5Matrix
 from keras.utils.np_utils import to_categorical
 
 from get_file_names import get_ready_path
-from network_trainer_helpers import net, save_history
+from network_trainer_helpers import net, save_history, get_memory_size
 
 # based on: https://arxiv.org/abs/1609.00607
 
@@ -22,20 +25,30 @@ generator = 'Sherpa'
 
 def network_trainer(gen):
     fname = get_ready_path(gen)
-    try:
+
+    # Data loading
+    with h5.File(fname) as hf:
+        memory_cost = 122 * 4  # Buffer for creating np array
+        memory_cost += get_memory_size(hf['train/x'])
+        memory_cost += get_memory_size(hf['val/x'])
+        memory_cost += 2 * get_memory_size(hf['train/y'])
+        memory_cost += 2 * get_memory_size(hf['val/y'])
+
+    if memory_cost < psutil.virtual_memory()[1]:  # available memory
         with h5.File(fname) as hf:
             x_train = hf['train/x'][()]
             y_train = to_categorical(hf['train/y'], 2)
             x_val = hf['val/x'][()]
             y_val = to_categorical(hf['val/y'], 2)
         print "Using data loaded into memory"
-    except MemoryError:
+    else:
         x_train = HDF5Matrix(fname, 'train/x')
         y_train = to_categorical(HDF5Matrix(fname, 'train/y'), 2)
         x_val = HDF5Matrix(fname, 'val/x')
         y_val = to_categorical(HDF5Matrix(fname, 'val/y'), 2)
         print "Using data from HDF5Matrix"
 
+    # Model loading
     model = net()
     model.summary()
 
