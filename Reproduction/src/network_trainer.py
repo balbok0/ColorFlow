@@ -56,7 +56,7 @@ def network_trainer(gen):
         os.makedirs(model_path)
 
     calls = [LearningRateScheduler(lambda i: float(0.001*(0.98**i))),
-             EarlyStopping(monitor='val_loss', min_delta=0.005, patience=10, verbose=2, mode='auto'),
+             EarlyStopping(monitor='val_loss', min_delta=0., patience=10, verbose=2, mode='auto'),
              ModelCheckpoint('{0}{1}.h5'.format(model_path, generator), monitor='val_loss', verbose=2,
                              save_best_only=True, mode='auto')]
 
