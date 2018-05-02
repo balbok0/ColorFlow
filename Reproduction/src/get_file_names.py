@@ -77,7 +77,11 @@ def get_model_names(model_name):
 # Returns dictionary of colors, for each generator.
 # Colors are meant to be like ones in paper.
 def get_colors():
-    return dict(zip(generators, ['r-.', 'm--', 'gold', 'b', 'g--']))
+    return dict(zip(generators, ['r', 'm', 'gold', 'b', 'g']))
+
+
+def get_line_style():
+    return dict(zip(generators, ['-.', '--', '-', '-', '--']))
 
 
 # Returns list of generators.
