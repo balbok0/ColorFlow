@@ -9,6 +9,7 @@ from keras.utils.np_utils import to_categorical
 from matplotlib import gridspec
 from matplotlib.ticker import MaxNLocator
 from scipy import interp
+from scipy.interpolate import interp1d
 from sklearn.metrics import roc_curve, roc_auc_score, auc
 
 from get_file_names import *
@@ -180,8 +181,8 @@ def _create_multi_roc(gen):
     for gen_i, gen_i_path in files.iteritems():
         print 'Creating curve for {}'.format(gen_i)
         with h5.File(gen_i_path) as h:
-            y_actual = to_categorical(h['test/y'][:3000])
-        y_pred = np.array(model.predict(HDF5Matrix(gen_i_path, 'test/x')[:3000], verbose=2),
+            y_actual = to_categorical(h['test/y'])
+        y_pred = np.array(model.predict(HDF5Matrix(gen_i_path, 'test/x'), verbose=2),
                           dtype=np.float64)
 
         n_classes = len(y_actual[0])
@@ -210,15 +211,13 @@ def _create_multi_roc(gen):
         main.plot(tprs[gen_i], fprs[gen_i], color=colors[gen_i], linestyle=line_styles[gen_i],
                   label='%s (AUC = %0.4f)' % (gen_i, roc_auc[gen_i]))
 
-    # fpr of a generator ROC curve is made of.
-    div = fprs[gen]
-
+    # Creates an interpolation function, then based on it computes ration between model dataset and all the others.
+    f_interpolate = interp1d(tprs[gen], fprs[gen], bounds_error=False)
     for gen_i in tprs.keys():
         curr_fpr = fprs[gen_i]
         curr_tpr = tprs[gen_i]
-        # find_index_nearest is needed, because roc_curve
-        # returns fprs of different length for different generators.
-        fpr_ratio = np.divide(curr_fpr, div[find_index_nearest(div, curr_fpr)])
+
+        fpr_ratio = np.divide(curr_fpr, f_interpolate(curr_tpr))
         ratio.plot(curr_tpr, fpr_ratio, color=colors[gen_i], linestyle=line_styles[gen_i])
 
     main.plot([0, 1], [0, 1], 'k--', label='Luck')
