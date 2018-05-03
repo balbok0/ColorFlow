@@ -1,6 +1,6 @@
 import os
 
-drive_path = '../Data/'
+drive_path = '../../Data/'
 generators = ['Herwig Angular', 'Herwig Dipole', 'Sherpa',
               'Pythia Standard', 'Pythia Vincia']
 
@@ -38,6 +38,8 @@ def get_ready_names():
     if check_drive():
         for gen in generators:
             files[gen] = get_ready_path(gen)
+    else:
+        raise IOError('Path not found')
     return files
 
 
