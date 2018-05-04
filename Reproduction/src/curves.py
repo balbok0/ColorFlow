@@ -89,87 +89,31 @@ def create_roc_curve(gen, verbose=2):
 
     check_dir(roc_img_dir)
 
-    if load_model('{path}{g}.h5'.format(path=models_dir, g=gen)).output_shape[1] == 1:
-        _create_binary_roc(gen, verbose=verbose)
-    else:
-        _create_multi_roc(gen, verbose=verbose)
-
-
-# ROC helper for binary network
-def _create_binary_roc(gen, verbose=2):
-    line_styles = get_line_style()
-    colors = get_colors()
-    files = get_ready_names()
-
-    # Needed to create two subplots with different sizes.
-    # If other ratios are needed change height_ratios.
-    plt.figure(figsize=(6, 8))
-    gs = gridspec.GridSpec(2, 1, height_ratios=[4, 1])
-
-    main = plt.subplot(gs[0])
-    main.set_yscale('log')
-    main.grid(True, color='gray', linestyle='--', linewidth=1, alpha=0.5)
-
-    ratio = plt.subplot(gs[1])
-    ratio.grid(True, color='gray', linestyle='--', linewidth=1, alpha=0.5)
-
-    model = load_model('{path}{g}.h5'.format(path=models_dir, g=gen))
-
-    # Contain true positive rate (signal efficiency) and false positive rate (background efficiency)
-    # for each generator.
-    tprs = {}
-    fprs = {}
-
-    for gen_i, gen_i_path in files.iteritems():
-        print 'Creating curve for {}'.format(gen_i)
-        with h5.File(gen_i_path) as h:
-            y_actual = h['test/y'][()]
-        y_pred = np.array(model.predict(HDF5Matrix(gen_i_path, 'test/x'), verbose=verbose),
-                          dtype=np.float64)
-        auc_score = roc_auc_score(y_actual, y_pred)
-        tpr, fpr, thr = roc_curve(y_true=y_actual, y_score=y_pred, pos_label=1)
-        fpr = np.divide(1., fpr)
-        fprs[gen_i] = fpr
-        tprs[gen_i] = tpr
-
-        main.plot(tpr, fpr, color=colors[gen_i], linestyle=line_styles[gen_i],
-                  label='%s (AUC = %0.4f)' % (gen_i, auc_score))
-
-    # fpr of a generator ROC curve is made of.
-    div = fprs[gen]
-    for gen_i in tprs.keys():
-        curr_fpr = fprs[gen_i]
-        curr_tpr = tprs[gen_i]
-        # find_index_nearest is needed, because roc_curve
-        # returns fprs of different length for different generators.
-        np.divide(curr_fpr, div[find_index_nearest(fprs[gen], curr_tpr)])
-        ratio.plot(tprs[gen_i], fprs[gen_i], color=colors[gen_i], linestyle=line_styles[gen_i])
-
-    ratio.set_xlabel("Signal Positive Rate")
-    ratio.set_ylabel("Model / %s" % gen)
-    main.set_ylabel("1 / [Background Efficiency]")
-    main.set_title("ROC Curve for model trained on {}".format(gen))
-    main.legend(loc=1, frameon=False)
-    plt.tight_layout()
-    plt.savefig("%sROC Curve %s" % (roc_img_dir, gen))
-    plt.clf()
-    print 'ROC Curve for {} successfully created.'.format(gen)
-
-
-# ROC helper for multi-class network
-def _create_multi_roc(gen, verbose=2):
-    line_styles = get_line_style()
-    colors = get_colors()
-
     if not os.path.exists('{directory}{g}.h5'.format(directory=roc_data_dir, g=gen)):
         save_tpr_fpr_auc(gen, verbose=verbose)
+
+    __draw_roc(gen)
+
+
+# ROC curve drawer, given generator.
+def __draw_roc(gen):
+    line_styles = get_line_style()
+    colors = get_colors()
+
+    fprs = {}
+    tprs = {}
+    aucs = {}
+    ratios = {}
 
     with h5.File('{directory}{g}.h5'.format(directory=roc_data_dir, g=gen)) as h:
         # Contain true positive rate (signal efficiency), false positive rate (background efficiency) and
         # area under curve (auc) score for each generator.
-        fprs = h['fpr']
-        tprs = h['tpr']
-        aucs = h['auc']
+        for g in generators:
+            print h[g].keys()
+            fprs[g] = h['%s/fpr' % g]
+            tprs[g] = h['%s/tpr' % g]
+            aucs[g] = h['%s/auc' % g]
+            ratios[g] = h['%s/ratio' % g]
 
     # Needed to create two subplots with different sizes.
     # If other ratios are needed change height_ratios.
@@ -185,21 +129,12 @@ def _create_multi_roc(gen, verbose=2):
 
     main.plot(np.arange(0.0, 1.0, 0.001), np.divide(1., np.arange(0.0, 1.0, 0.001)), 'k--', label='Luck (AUC = 0.5000)')
 
-    for gen_i in tprs.keys():
+    for gen_i in generators:
         print 'Creating curve for {}'.format(gen_i)
-        fprs[gen_i] = np.divide(1., fprs[gen_i])
-
         main.plot(tprs[gen_i], fprs[gen_i], color=colors[gen_i], linestyle=line_styles[gen_i],
                   label='%s (AUC = %0.4f)' % (gen_i, aucs[gen_i]))
 
-    # Creates an interpolation function, then based on it computes ration between model dataset and all the others.
-    f_interpolate = interp1d(tprs[gen], fprs[gen], bounds_error=False)
-    for gen_i in tprs.keys():
-        curr_fpr = fprs[gen_i]
-        curr_tpr = tprs[gen_i]
-
-        fpr_ratio = np.divide(curr_fpr, f_interpolate(curr_tpr))
-        ratio.plot(curr_tpr, fpr_ratio, color=colors[gen_i], linestyle=line_styles[gen_i])
+        ratio.plot(tprs[gen_i], ratios[gen_i], color=colors[gen_i], linestyle=line_styles[gen_i])
 
     ratio.set_xlabel("Signal Positive Rate")
     ratio.set_ylabel("Model / %s" % gen)
@@ -214,17 +149,63 @@ def _create_multi_roc(gen, verbose=2):
     print 'ROC Curve for {} successfully created.'.format(gen)
 
 
+# Given generator, saves data (tpr, fpr, auc, ratio of various fpr to fpr of given gen) to 'gen'.h5 file.
 def save_tpr_fpr_auc(gen, verbose=2):
     model = load_model('{path}{g}.h5'.format(path=models_dir, g=gen))
-    files = get_ready_names()
 
+    if model.output_shape[1] == 1:
+        tprs, fprs, aucs, ratios = __binary_roc_data(model, gen, verbose=verbose)
+    else:
+        tprs, fprs, aucs, ratios = __multi_roc_data(model, gen, verbose=verbose)
+
+    # Saves file
+    check_dir(roc_data_dir)
+
+    with h5.File('{directory}{name}.h5'.format(directory=roc_data_dir, name=gen), mode='w') as h:
+        for gen_i in tprs.keys():
+            t = h.create_group(gen_i)
+            t.create_dataset('tpr', data=tprs[gen_i])
+            t.create_dataset('fpr', data=fprs[gen_i])
+            t.create_dataset('auc', data=aucs[gen_i])
+            t.create_dataset('ratio', data=ratios[gen_i])
+
+
+# Calculates and return true positive rate, false positive rate, area under curve,
+# and ratios of false positive rate with respect to false positive rate of given generator gen.
+# For binary-class model.
+def __binary_roc_data(model, gen, verbose=2):
+    # Contain true positive rate (signal efficiency) and false positive rate (background efficiency)
+    # for each generator.
+    tprs = {}
+    fprs = {}
+    aucs = {}
+
+    for gen_i, gen_i_path in get_ready_names().iteritems():
+        print 'Creating curve for {}'.format(gen_i)
+        with h5.File(gen_i_path) as h:
+            y_actual = h['test/y'][()]
+        y_pred = np.array(model.predict(HDF5Matrix(gen_i_path, 'test/x'), verbose=verbose),
+                          dtype=np.float64)
+        aucs[gen_i] = roc_auc_score(y_actual, y_pred)
+        tpr, fpr, _ = roc_curve(y_true=y_actual, y_score=y_pred, pos_label=1)
+
+        fprs[gen_i] = np.divide(1., fpr)
+        tprs[gen_i] = tpr
+
+    return tprs, fprs, aucs, __calc_ratios(tprs, fprs, gen)
+
+
+# Calculates and return true positive rate, false positive rate, area under curve,
+# and ratios of false positive rate with respect to false positive rate of given generator gen.
+# For multi-class model.
+def __multi_roc_data(model, gen, verbose=2):
     # Contain true positive rate (signal efficiency), false positive rate (background efficiency) and
     # area under curve (auc) score for each generator.
     tprs = {}
     fprs = {}
-    roc_auc = {}
+    aucs = {}
 
-    for gen_i, gen_i_path in files.iteritems():
+    for gen_i, gen_i_path in get_ready_names().iteritems():
         print 'Creating data from model {}'.format(gen_i)
         with h5.File(gen_i_path) as h:
             y_actual = to_categorical(h['test/y'])
@@ -252,16 +233,25 @@ def save_tpr_fpr_auc(gen, verbose=2):
 
         fprs[gen_i] = all_fpr
         tprs[gen_i] = mean_tpr
-        roc_auc[gen_i] = auc(fprs[gen_i], tprs[gen_i])
+        aucs[gen_i] = auc(fprs[gen_i], tprs[gen_i])
+        fprs[gen_i] = np.divide(1., fprs[gen_i])
 
-    # Saves file
-    check_dir(roc_data_dir)
-
-    with h5.File('{directory}{name}.h5'.format(directory=roc_data_dir, name=gen), mode='w') as h:
-        h.create_dataset('tpr', data=tprs)
-        h.create_dataset('fpr', data=fprs)
-        h.create_dataset('auc', data=roc_auc)
+    return tprs, fprs, aucs, __calc_ratios(tprs, fprs, gen)
 
 
-save_tpr_fpr_auc('Sherpa', verbose=1)
-# create_roc_curve('Sherpa')
+# Calculates ratios between fpr values of different generators
+# with respect to given generator gen.
+def __calc_ratios(tprs, fprs, gen):
+    assert tprs.keys() == fprs.keys()
+    assert gen in tprs
+
+    ratios = {}
+    f_interpolate = interp1d(tprs[gen], fprs[gen], bounds_error=False)
+    for gen_i in generators:
+        curr_fpr = fprs[gen_i]
+        curr_tpr = tprs[gen_i]
+        ratios[gen_i] = np.divide(curr_fpr, f_interpolate(curr_tpr))
+    return ratios
+
+
+create_roc_curve('Sherpa')
