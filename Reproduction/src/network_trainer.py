@@ -15,11 +15,10 @@ from network_trainer_helpers import net, save_history, get_memory_size
 # based on: https://arxiv.org/abs/1609.00607
 
 model_path = '../models/'
-
 # generator = 'Pythia Standard'
 # generator = 'Pythia Vincia'
-generator = 'Sherpa'
-# generator = 'Herwig Angular'
+# generator = 'Sherpa'
+generator = 'Herwig Angular'
 # generator = 'Herwig Dipole'
 
 
@@ -57,7 +56,7 @@ def network_trainer(gen):
 
     calls = [LearningRateScheduler(lambda i: float(0.001*(0.98**i))),
              EarlyStopping(monitor='val_loss', min_delta=0., patience=10, verbose=2, mode='auto'),
-             ModelCheckpoint('{0}{1}.h5'.format(model_path, generator), monitor='val_loss', verbose=2,
+             ModelCheckpoint('{0}{1}.h5'.format(model_path, gen), monitor='val_loss', verbose=2,
                              save_best_only=True, mode='auto')]
 
     hist = model.fit(x=x_train, y=y_train, validation_data=(x_val, y_val),
@@ -68,3 +67,4 @@ def network_trainer(gen):
 
 
 network_trainer(generator)
+network_trainer('Herwig Dipole')
