@@ -109,11 +109,10 @@ def __draw_roc(gen):
         # Contain true positive rate (signal efficiency), false positive rate (background efficiency) and
         # area under curve (auc) score for each generator.
         for g in generators:
-            print h[g].keys()
-            fprs[g] = h['%s/fpr' % g]
-            tprs[g] = h['%s/tpr' % g]
-            aucs[g] = h['%s/auc' % g]
-            ratios[g] = h['%s/ratio' % g]
+            fprs[g] = h['%s/fpr' % g][:]
+            tprs[g] = h['%s/tpr' % g][:]
+            aucs[g] = h['%s/auc' % g][:]
+            ratios[g] = h['%s/ratio' % g][:]
 
     # Needed to create two subplots with different sizes.
     # If other ratios are needed change height_ratios.
@@ -123,11 +122,15 @@ def __draw_roc(gen):
     main = plt.subplot(gs[0])
     main.set_yscale('log')
     main.grid(True, color='gray', linestyle='--', linewidth=1, alpha=0.5)
+    plt.xlim([0.1, 1.])
+    plt.ylim([1., 10.**3])
 
     ratio = plt.subplot(gs[1])
     ratio.grid(True, color='gray', linestyle='--', linewidth=1, alpha=0.5)
+    plt.xlim([0.1, 1.])
+    plt.ylim([0.1, 1.1])
 
-    main.plot(np.arange(0.0, 1.0, 0.001), np.divide(1., np.arange(0.0, 1.0, 0.001)), 'k--', label='Luck (AUC = 0.5000)')
+    main.plot(np.arange(0.1, 1.0, 0.001), np.divide(1., np.arange(0.1, 1.0, 0.001)), 'k--', label='Luck (AUC = 0.5000)')
 
     for gen_i in generators:
         print 'Creating curve for {}'.format(gen_i)
@@ -141,8 +144,6 @@ def __draw_roc(gen):
     main.set_ylabel("1 / [Background Efficiency]")
     main.set_title("ROC Curve for model trained on {}".format(gen))
     main.legend(loc=1, frameon=False)
-    plt.xlim([0.0, 1.])
-    plt.ylim([0.0, 2.])
     plt.tight_layout()
     plt.savefig("%sROC Curve %s" % (roc_img_dir, gen))
     plt.clf()
@@ -161,13 +162,13 @@ def save_tpr_fpr_auc(gen, verbose=2):
     # Saves file
     check_dir(roc_data_dir)
 
-    with h5.File('{directory}{name}.h5'.format(directory=roc_data_dir, name=gen), mode='w') as h:
+    with h5.File('{directory}{name}.h5'.format(directory=roc_data_dir, name=gen), 'w') as h:
         for gen_i in tprs.keys():
             t = h.create_group(gen_i)
-            t.create_dataset('tpr', data=tprs[gen_i])
-            t.create_dataset('fpr', data=fprs[gen_i])
-            t.create_dataset('auc', data=aucs[gen_i])
-            t.create_dataset('ratio', data=ratios[gen_i])
+            t.create_dataset('tpr', data=tprs[gen_i][()])
+            t.create_dataset('fpr', data=fprs[gen_i][()])
+            t.create_dataset('auc', data=[aucs[gen_i]])
+            t.create_dataset('ratio', data=ratios[gen_i][()])
 
 
 # Calculates and return true positive rate, false positive rate, area under curve,
@@ -254,4 +255,8 @@ def __calc_ratios(tprs, fprs, gen):
     return ratios
 
 
+create_roc_curve('Herwig Dipole')
+create_roc_curve('Pythia Vincia')
+create_roc_curve('Herwig Angular')
 create_roc_curve('Sherpa')
+create_roc_curve('Pythia Standard')

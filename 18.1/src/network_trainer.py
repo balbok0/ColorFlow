@@ -1,10 +1,11 @@
-import networks as net
-import pickle
-from keras.utils.io_utils import HDF5Matrix
-from keras.callbacks import ModelCheckpoint
-from keras.models import load_model
-from keras.backend import clear_session
 import os
+import pickle
+
+import h5py as h5
+from keras.backend import clear_session
+from keras.callbacks import ModelCheckpoint
+
+import networks as net
 from methods import *
 
 '''
@@ -37,8 +38,23 @@ def model_trainer(model_type, generator, dropout=0.5, kernel_size=(3, 3), saving
     file_path = get_ready_names()[generator]
 
     # Data loading.
-    xtr = HDF5Matrix(file_path, 'train/x')
-    ytr = HDF5Matrix(file_path, 'train/y')
+    ones = 0
+    zeros = 0
+
+    with h5.File(file_path) as hf:
+        mask = np.full(700000, fill_value=False, dtype=bool)
+        ytr = hf['train/y'][:700000]
+        for i in range(len(ytr)):
+            if ytr[i] == 1 and ones < 300000:
+                mask[i] = True
+                ones += 1
+            elif ytr[i] == 0 and zeros < 300000:
+                mask[i] = True
+                zeros += 1
+            elif zeros >= 300000 and ones >= 300000:
+                break
+        xtr = hf['train/x'][:700000][mask]
+        ytr = hf['train/y'][:700000][mask]
     x_val = HDF5Matrix(file_path, 'val/x')
     y_val = HDF5Matrix(file_path, 'val/y')
 
