@@ -29,9 +29,9 @@ def check_dir(path):
 # Produces learning curves of given generator
 def create_learning_curve(gen):
     assert gen in generators
-    assert os.path.exists("{d}history_{g}.p".format(d=learn_curve_data_dir, g=gen))
+    assert os.path.exists("{d}SM_history_{g}.p".format(d=learn_curve_data_dir, g=gen))
 
-    data = pickle.load(open("{path}history_{g}.p".format(path=learn_curve_data_dir, g=gen)))
+    data = pickle.load(open("{path}SM_history_{g}.p".format(path=learn_curve_data_dir, g=gen)))
 
     assert data.keys() == ['acc', 'loss', 'val_acc', 'val_loss']
 
@@ -255,8 +255,9 @@ def __calc_ratios(tprs, fprs, gen):
     return ratios
 
 
-create_roc_curve('Herwig Dipole')
-create_roc_curve('Pythia Vincia')
-create_roc_curve('Herwig Angular')
-create_roc_curve('Sherpa')
+# create_roc_curve('Herwig Dipole')
+# create_roc_curve('Pythia Vincia')
+# create_roc_curve('Herwig Angular')
+# create_roc_curve('Sherpa')
+create_learning_curve('Pythia Standard')
 create_roc_curve('Pythia Standard')

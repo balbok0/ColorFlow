@@ -38,8 +38,7 @@ def make_table():
     mng = plt.get_current_fig_manager()
     mng.full_screen_toggle()
 
-    plt.savefig('../test.png', dpi=300)
-    # plt.show()
+    plt.savefig('{directory}ROC table.png'.format(directory=roc_img_dir), dpi=300)
 
 
 make_table()

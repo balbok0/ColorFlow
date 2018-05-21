@@ -1,4 +1,3 @@
-z = [6, 7, 8, 9]
-o = [1, 2, 3, 4]
-
-print z + o
+from keras.applications import vgg19
+m = vgg19.VGG19()
+m.summary()
