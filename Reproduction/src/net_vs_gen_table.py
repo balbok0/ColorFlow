@@ -1,10 +1,11 @@
 import h5py as h5
 import matplotlib.pyplot as plt
 
+import local_vars
 from get_file_names import generators
 
-roc_img_dir = '../ROC/'
-roc_data_dir = roc_img_dir + 'data/'
+roc_img_dir = local_vars.roc
+roc_data_dir = local_vars.roc_data
 
 
 def make_table():

@@ -5,12 +5,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 from keras.utils.io_utils import HDF5Matrix
 
+import local_vars
 from get_file_names import get_raw_names, generators
 
-path_to_avg = '/home/balbok/Documents/Research/ColorFlow/Reproduction/images/avg_img/'
-path_to_npy = path_to_avg + 'npy/'
-path_to_single = path_to_avg + 'single/'
-path_to_diff = path_to_avg + 'differences/'
+path_to_avg = local_vars.avg_img
+path_to_npy = local_vars.avg_img_npy
+path_to_single = local_vars.avg_img_single
+path_to_diff = local_vars.avg_img_diff
 
 
 def _mean(data):

@@ -5,7 +5,9 @@ import numpy as np
 from keras.layers import MaxoutDense, Dense, Activation
 from keras.models import Sequential
 
-dir_path = '../models_data/'
+import local_vars
+
+dir_path = local_vars.models_data
 
 
 # Returns a model described by: https://arxiv.org/pdf/1609.00607.pdf

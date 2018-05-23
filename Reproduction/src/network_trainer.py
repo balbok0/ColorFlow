@@ -9,12 +9,13 @@ from keras.callbacks import LearningRateScheduler, EarlyStopping, ModelCheckpoin
 from keras.utils.io_utils import HDF5Matrix
 from keras.utils.np_utils import to_categorical
 
+import local_vars
 from get_file_names import get_ready_path
 from network_trainer_helpers import net, save_history, get_memory_size
 
 # based on: https://arxiv.org/abs/1609.00607
 
-model_path = '../models/'
+model_path = local_vars.models
 # generator = 'Pythia Standard'
 # generator = 'Pythia Vincia'
 # generator = 'Sherpa'

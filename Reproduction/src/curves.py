@@ -14,11 +14,11 @@ from sklearn.metrics import roc_curve, roc_auc_score, auc
 
 from get_file_names import *
 
-learn_curve_data_dir = '../models_data/'
-learn_curve_img_dir = '../learning_curves/'
-roc_img_dir = '../ROC/'
-models_dir = '../models/'
-roc_data_dir = roc_img_dir + 'data/'
+learn_curve_data_dir = local_vars.models_data
+learn_curve_img_dir = local_vars.learning_curves
+roc_img_dir = local_vars.roc
+models_dir = local_vars.models
+roc_data_dir = local_vars.roc_data
 
 
 def check_dir(path):

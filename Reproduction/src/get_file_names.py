@@ -1,7 +1,12 @@
 import os
 
+import local_vars
+
 # This is the only line which has to be changed, according to where data is kept.
-drive_path = '/home/balbok/Documents/Research/ColorFlow/Data/'
+drive_path = local_vars.basic_dir
+raw_dir = local_vars.raw_dir
+ready_path = local_vars.ready_dir
+models_path = local_vars.models
 
 generators = ['Herwig Angular', 'Herwig Dipole', 'Sherpa',
               'Pythia Standard', 'Pythia Vincia']
@@ -16,7 +21,6 @@ def check_drive():
 # If not, raises IOError.
 def get_raw_names():
     files = {}
-    raw_dir = drive_path + 'raw data/'
     if check_drive():
         files['Pythia Standard'] = [raw_dir + "Pythia/Standard/qcd_j1p0_sj0p30_delphes_jets_pileup_images.h5",
                                     raw_dir + "Pythia/Standard/w_j1p0_sj0p30_delphes_jets_pileup_images.h5"]
@@ -46,15 +50,13 @@ def get_ready_names():
 def get_toy_names():
     files = {}
     for gen in generators:
-        gen_path = 'toy/' + gen.replace(' ', '/') + '/data.h5'
-        if not os.path.exists(gen_path):
-            raise IOError("Generator " + gen + " not found, at path: " + gen_path)
+        gen_path = get_ready_path(gen)
         files[gen] = gen_path
     return files
 
 
 def get_ready_path(gen):
-    gen_path = drive_path + "reco data/" + gen.replace(' ', '/') + '/data.h5'
+    gen_path = ready_path + gen.replace(' ', '/') + '/data.h5'
     if not os.path.exists(gen_path):
         raise IOError("Generator " + gen + " not found, at path: " + gen_path)
     return gen_path
@@ -64,7 +66,6 @@ def get_ready_path(gen):
 # If they do not exist, raises IOError.
 def get_model_names(model_name):
     models = {}
-    models_path = 'models/'
     for gen in generators:
         if os.path.exists("{path}validated {mod} {g}".format(path=models_path, mod=model_name, g=gen)):
             models[gen] = ("{path}validated {mod} {g}".format(path=models_path, mod=model_name, g=gen))
