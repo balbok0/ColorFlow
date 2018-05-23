@@ -4,7 +4,6 @@ import h5py
 import numpy as np
 import sklearn.utils
 
-import local_vars
 from get_file_names import *
 
 ready_path = local_vars.ready_dir
