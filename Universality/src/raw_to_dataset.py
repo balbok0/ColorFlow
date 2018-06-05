@@ -1,8 +1,10 @@
+import time
+
 import h5py
 import numpy as np
-import time
-from imblearn.under_sampling import RandomUnderSampler
 import sklearn.utils
+from imblearn.under_sampling import RandomUnderSampler
+
 from get_fnames import *
 from methods import zero_pad
 

@@ -1,5 +1,6 @@
-from methods import roc_curve
 from get_fnames import *
+from methods import roc_curve
+
 gen_used = "Sherpa"
 # gen_used = "Pythia Vincia"
 # gen_used = "Pythia Standard"

@@ -1,11 +1,11 @@
-import networks as net
-import pickle
-from keras.callbacks import ModelCheckpoint
-from keras.models import load_model
-from keras.utils.io_utils import HDF5Matrix
 import os
-from methods import *
+import pickle
+
 from keras.backend import clear_session
+from keras.callbacks import ModelCheckpoint
+
+import networks as net
+from methods import *
 
 drop = 0.5
 kernel = (3, 3)

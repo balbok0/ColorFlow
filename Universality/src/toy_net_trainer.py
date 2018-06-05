@@ -1,13 +1,13 @@
-import networks as net
-import pickle
-from keras.callbacks import ModelCheckpoint
-from keras.models import load_model
-from keras.optimizers import Nadam, Adam
-from keras.backend import clear_session
-import os
 import datetime
-from methods import *
+import pickle
+
+from keras.backend import clear_session
+from keras.callbacks import ModelCheckpoint
+from keras.optimizers import Nadam, Adam
+
+import networks as net
 from get_fnames import get_toy_names, generators
+from methods import *
 
 '''
 - WZ is 1, QCD/JZ is 0

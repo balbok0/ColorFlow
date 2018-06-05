@@ -1,10 +1,11 @@
 import h5py
 import numpy as np
-from matplotlib import pyplot as plt
 import sklearn.metrics
-from matplotlib.ticker import MaxNLocator
-from keras.utils.io_utils import HDF5Matrix
 from keras.models import load_model
+from keras.utils.io_utils import HDF5Matrix
+from matplotlib import pyplot as plt
+from matplotlib.ticker import MaxNLocator
+
 from get_fnames import get_colors, get_generators, get_ready_names, get_raw_names
 
 

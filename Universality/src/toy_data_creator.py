@@ -1,7 +1,9 @@
-import h5py
-from get_fnames import *
-from os.path import exists
 from os import mkdir, makedirs
+from os.path import exists
+
+import h5py
+
+from get_fnames import *
 
 toy_path = '../toy'
 toy_size = 1000

@@ -1,7 +1,9 @@
-from methods import *
-from get_fnames import get_raw_names
 import time
+
 from matplotlib import pyplot as plt
+
+from get_fnames import get_raw_names
+from methods import *
 
 # color maps in matplotlib: https://matplotlib.org/examples/color/colormaps_reference.html
 path_to_avg_img = '../images/avg_img/'
