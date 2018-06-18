@@ -22,8 +22,8 @@ def get_raw_names():
                                   raw_dir + "Pythia/Vincia/w_vincia_j1p0_sj0p30_delphes_jets_pileup_images.h5"]
         files['Herwig Angular'] = [raw_dir + "Herwig/Angular/JZ_combined_j1p0_sj0p30_delphes_jets_pileup_images.h5",
                                    raw_dir + "Herwig/Angular/WZ_combined_j1p0_sj0p30_delphes_jets_pileup_images.h5"]
-        files['Herwig Dipole'] = [raw_dir + "Herwig/Dipole/QCD_Dipole250-300_j1p0_sj0p30_delphes_jets_images.h5",
-                                  raw_dir + "Herwig/Dipole/WZ_combined_j1p0_sj0p30_delphes_jets_images.h5"]
+        files['Herwig Dipole'] = [raw_dir + "Herwig/Dipole/JZ_combined2_j1p0_sj0p30_delphes_jets_images.h5",
+                                  raw_dir + "Herwig/Dipole/WZ_combined2_j1p0_sj0p30_delphes_jets_images.h5"]
         files['Sherpa'] = [raw_dir + 'Sherpa/JZ_combined_j1p0_sj0p30_delphes_jets_pileup_images.h5',
                            raw_dir + 'Sherpa/WZ_combined_j1p0_sj0p30_delphes_jets_pileup_images.h5']
     else:

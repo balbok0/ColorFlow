@@ -1,14 +1,27 @@
 <component name="ProjectDictionaryState">
   <dictionary name="balbok">
     <words>
+      <w>adadelta</w>
+      <w>adagrad</w>
+      <w>adamax</w>
       <w>aucs</w>
+      <w>cifar</w>
+      <w>colorflow</w>
+      <w>conv</w>
       <w>dataset</w>
       <w>fprs</w>
       <w>matplotlib</w>
+      <w>maxout</w>
+      <w>maxpool</w>
+      <w>maxpools</w>
+      <w>mnist</w>
+      <w>nadam</w>
       <w>pseudorapidity</w>
       <w>pythia</w>
       <w>reco</w>
+      <w>rmsprop</w>
       <w>skyblue</w>
+      <w>standad</w>
       <w>tprs</w>
     </words>
   </dictionary>

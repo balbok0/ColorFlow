@@ -114,37 +114,36 @@ def raw_data_to_ready_data(max_size, gen):
     increment_0 = int(size_0 / splits)
     increment_1 = int(size_1 / splits)
 
-    print gen
-    print
-    print "Splitting data into", splits, "parts."
-    print "Resulting data sets will be approximately of size", \
-        min(increment_1, increment_0) * splits, "images."
-    print "Training, Validation, Tests combined."
-    print "Increment of 0's taken is", increment_0
-    print "Increment of 1's taken is", increment_1
-    print "--------------------------------------"
-    print "Split 1 started"
+    print(gen)
+    print()
+    print("Splitting data into", splits, "parts.")
+    print("Resulting data sets will be approximately of size", min(increment_1, increment_0) * splits, "images.")
+    print("Training, Validation, Tests combined.")
+    print("Increment of 0's taken is", increment_0)
+    print("Increment of 1's taken is", increment_1)
+    print("--------------------------------------")
+    print("Split 1 started")
 
     ti = time.time()
     first_helper(h5py.File(fname0)['images'][:increment_0],
                  h5py.File(fname1)['images'][:increment_1],
                  dir_name)
-    print "Split 1 ended. It took %0.2f seconds." % (time.time() - ti)
+    print("Split 1 ended. It took %0.2f seconds." % (time.time() - ti))
     for i in range(1, splits):
-        print "Split", i + 1, "started"
+        print("Split", i + 1, "started")
         ti = time.time()
         helper(h5py.File(fname0)['images'][i * increment_0:(i + 1) * increment_0],
                h5py.File(fname1)['images'][i * increment_1:(i + 1) * increment_1],
                dir_name)
-        print "Split", i + 1, "ended. It took %0.2f seconds." % (time.time() - ti)
+        print("Split", i + 1, "ended. It took %0.2f seconds." % (time.time() - ti))
 
     # Print how long it took
     hs = int((time.time() - ts) / 3600)
     ms = int((time.time() - ts) % 3600 / 60)
     s = (time.time() - ts) % 3600 % 60
-    print "Time method took was", hs, "hours,", ms, "minutes, %0.2f seconds for" % s, dir_name
+    print("Time method took was", hs, "hours,", ms, "minutes, %0.2f seconds for" % s, dir_name)
 
-    print ""
+    print()
     test_dimensions(dir_name + "/data.h5")
 
 
@@ -152,7 +151,7 @@ def test_dimensions(fname):
     with h5py.File(fname, 'r') as f:
         for k in f.keys():
             for v in f[k].keys():
-                print k, v, "shape is", f[k][v].shape
+                print(k, v, "shape is", f[k][v].shape)
 
 
-raw_data_to_ready_data(max_chunks, 'Pythia Standard')
+raw_data_to_ready_data(max_chunks, 'Herwig Dipole')

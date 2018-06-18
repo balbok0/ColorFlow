@@ -1,3 +1,7 @@
+from __future__ import print_function
+from __future__ import print_function
+from __future__ import print_function
+
 import pickle
 
 import h5py as h5
@@ -35,7 +39,7 @@ def create_learning_curve(gen):
 
     assert data.keys() == ['acc', 'loss', 'val_acc', 'val_loss']
 
-    print 'Making image for {}'.format(gen)
+    print('Making image for {}'.format(gen))
 
     check_dir(learn_curve_img_dir)
 
@@ -133,7 +137,7 @@ def __draw_roc(gen):
     main.plot(np.arange(0.1, 1.0, 0.001), np.divide(1., np.arange(0.1, 1.0, 0.001)), 'k--', label='Luck (AUC = 0.5000)')
 
     for gen_i in generators:
-        print 'Creating curve for {}'.format(gen_i)
+        print('Creating curve for {}'.format(gen_i))
         main.plot(tprs[gen_i], fprs[gen_i], color=colors[gen_i], linestyle=line_styles[gen_i],
                   label='%s (AUC = %0.4f)' % (gen_i, aucs[gen_i]))
 
@@ -147,7 +151,7 @@ def __draw_roc(gen):
     plt.tight_layout()
     plt.savefig("%sROC Curve %s" % (roc_img_dir, gen))
     plt.clf()
-    print 'ROC Curve for {} successfully created.'.format(gen)
+    print('ROC Curve for {} successfully created.'.format(gen))
 
 
 # Given generator, saves data (tpr, fpr, auc, ratio of various fpr to fpr of given gen) to 'gen'.h5 file.
@@ -181,8 +185,8 @@ def __binary_roc_data(model, gen, verbose=2):
     fprs = {}
     aucs = {}
 
-    for gen_i, gen_i_path in get_ready_names().iteritems():
-        print 'Creating curve for {}'.format(gen_i)
+    for gen_i, gen_i_path in get_ready_names().items():
+        print('Creating curve for {}'.format(gen_i))
         with h5.File(gen_i_path) as h:
             y_actual = h['test/y'][()]
         y_pred = np.array(model.predict(HDF5Matrix(gen_i_path, 'test/x'), verbose=verbose),
@@ -206,8 +210,8 @@ def __multi_roc_data(model, gen, verbose=2):
     fprs = {}
     aucs = {}
 
-    for gen_i, gen_i_path in get_ready_names().iteritems():
-        print 'Creating data from model {}'.format(gen_i)
+    for gen_i, gen_i_path in get_ready_names().items():
+        print('Creating data from model {}'.format(gen_i))
         with h5.File(gen_i_path) as h:
             y_actual = to_categorical(h['test/y'])
         y_pred = np.array(model.predict(HDF5Matrix(gen_i_path, 'test/x'), verbose=verbose),

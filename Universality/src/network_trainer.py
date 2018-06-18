@@ -20,9 +20,9 @@ model_data_save_dir = '../models_data/'
 
 # gen_used = "Sherpa"
 # gen_used = "Pythia Vincia"
-gen_used = "Pythia Standard"
+# gen_used = "Pythia Standard"
 # gen_used = "Herwig Angular"
-# gen_used = "Herwig Dipole"
+gen_used = "Herwig Dipole"
 
 model_name = "SM"
 
@@ -38,23 +38,23 @@ def model_trainer(model_type, generator, dropout=0.5, kernel_size=(3, 3), saving
     file_path = get_ready_names()[generator]
 
     # Data loading.
-    ones = 0
-    zeros = 0
+    # ones = 0
+    # zeros = 0
 
     with h5.File(file_path) as hf:
-        mask = np.full(700000, fill_value=False, dtype=bool)
-        ytr = hf['train/y'][:700000]
-        for i in range(len(ytr)):
-            if ytr[i] == 1 and ones < 300000:
-                mask[i] = True
-                ones += 1
-            elif ytr[i] == 0 and zeros < 300000:
-                mask[i] = True
-                zeros += 1
-            elif zeros >= 300000 and ones >= 300000:
-                break
-        xtr = hf['train/x'][:700000][mask]
-        ytr = hf['train/y'][:700000][mask]
+        # ytr = hf['train/y']
+        # mask = np.full(ytr, fill_value=False, dtype=bool)
+        # for i in range(len(ytr)):
+        #     if ytr[i] == 1 and ones < 300000:
+        #         mask[i] = True
+        #         ones += 1
+        #     elif ytr[i] == 0 and zeros < 300000:
+        #         mask[i] = True
+        #         zeros += 1
+        #     elif zeros >= 300000 and ones >= 300000:
+        #         break
+        xtr = hf['train/x'][()]
+        ytr = hf['train/y'][()]
     x_val = HDF5Matrix(file_path, 'val/x')
     y_val = HDF5Matrix(file_path, 'val/y')
 

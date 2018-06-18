@@ -31,8 +31,8 @@ def make_table():
     ax.axis('off')
     ax.axis('tight')
 
-    t = ax.table(cellText=data, colLabels=col_labels, rowLabels=row_labels, loc='center',
-                 colWidths=[0.14 for x in col_labels])
+    ax.table(cellText=data, colLabels=col_labels, rowLabels=row_labels, loc='center',
+             colWidths=[0.14 for _ in col_labels])
 
     fig.tight_layout()
 

@@ -40,13 +40,13 @@ def network_trainer(gen):
             y_train = to_categorical(hf['train/y'], 2)
             x_val = hf['val/x'][()]
             y_val = to_categorical(hf['val/y'], 2)
-        print "Using data loaded into memory"
+        print("Using data loaded into memory")
     else:
         x_train = HDF5Matrix(fname, 'train/x')
         y_train = to_categorical(HDF5Matrix(fname, 'train/y'), 2)
         x_val = HDF5Matrix(fname, 'val/x')
         y_val = to_categorical(HDF5Matrix(fname, 'val/y'), 2)
-        print "Using data from HDF5Matrix"
+        print("Using data from HDF5Matrix")
 
     # Model loading
     model = net()
