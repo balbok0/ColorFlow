@@ -1,3 +1,7 @@
+from __future__ import print_function
+from __future__ import print_function
+from __future__ import print_function
+
 import datetime
 import pickle
 
@@ -80,8 +84,8 @@ for gen in generators:
     for mod in models:
         for drop in drops:
             for kernel in kernels:
-                print mod, drop, kernel, gen
-                print "NAdam", str(datetime.datetime.now())
+                print(mod, drop, kernel, gen)
+                print("NAdam", str(datetime.datetime.now()))
                 model_trainer(mod, gen, drop, kernel, x_tr, x_val, y_tr, y_val, opt='nadam', saving=False)
-                print "Adam", str(datetime.datetime.now())
+                print("Adam", str(datetime.datetime.now()))
                 model_trainer(mod, gen, drop, kernel, x_tr, x_val, y_tr, y_val, opt='adam', saving=False)

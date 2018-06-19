@@ -55,6 +55,7 @@ def model_trainer(model_type, generator, dropout=0.5, kernel_size=(3, 3), saving
         #         break
         xtr = hf['train/x'][()]
         ytr = hf['train/y'][()]
+
     x_val = HDF5Matrix(file_path, 'val/x')
     y_val = HDF5Matrix(file_path, 'val/y')
 

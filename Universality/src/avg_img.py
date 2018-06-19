@@ -1,8 +1,7 @@
+from __future__ import print_function
+
 import time
 
-from matplotlib import pyplot as plt
-
-from get_fnames import get_raw_names
 from methods import *
 
 # color maps in matplotlib: https://matplotlib.org/examples/color/colormaps_reference.html
@@ -33,12 +32,12 @@ def avg_img_npy(gen):
     data0 = HDF5Matrix(fname[0], 'images')
     ts = time.time()
     np.save(path_to_npy + gen + " Singlet", mean(data0))
-    print "Time it took for Singlet of {} was {:.3f}s.".format(gen, time.time()-ts) + "s"
+    print("Time it took for Singlet of {} was {:.3f}s.".format(gen, time.time() - ts) + "s")
 
     data1 = HDF5Matrix(fname[1], 'images')
     ts = time.time()
     np.save(path_to_npy + gen + " Octet", mean(data1))
-    print "Time it took for Octet of {} was {:.3f}s.".format(gen, time.time()-ts) + "s"
+    print("Time it took for Octet of {} was {:.3f}s.".format(gen, time.time() - ts) + "s")
 
 
 def prep_img(array):

@@ -1,3 +1,7 @@
+from __future__ import print_function
+from __future__ import print_function
+from __future__ import print_function
+
 import h5py
 import numpy as np
 import sklearn.metrics
@@ -28,12 +32,12 @@ def roc_curves(model_name):
 def roc_curve(model_name, model_generator):
     colors = get_colors()
     files = get_ready_names()
-    print model_generator
+    print(model_generator)
     model = "../models/validated {} {}".format(model_name, model_generator)
-    print model
+    print(model)
     model = load_model(model)
-    for gen, gen_path in files.iteritems():
-        print 'Creating curve for {}'.format(gen)
+    for gen, gen_path in files.items():
+        print('Creating curve for {}'.format(gen))
         y_predicted = model.predict(HDF5Matrix(gen_path, 'test/x'), verbose=1)
         y_true = HDF5Matrix(gen_path, 'test/y')
         _single_roc_curve(y_true, y_predicted, colors[gen], gen)
