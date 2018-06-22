@@ -1,7 +1,8 @@
 import random
 
+import numpy as np
 from keras import optimizers
-from keras.callbacks import EarlyStopping, Callback
+from keras.callbacks import EarlyStopping, LearningRateScheduler, Callback
 from keras.layers import Activation, Dense, Flatten, Dropout, Conv2D, MaxPool2D
 from keras.models import Sequential
 from typing import List, Dict, Union
@@ -11,6 +12,8 @@ import helpers
 
 class Network:
     (__x_train, __y_train), (__x_val, __y_val) = (None, None), (None, None)
+
+    default_callbacks = [EarlyStopping(patience=5)]  # type: List[Callback]
 
     @staticmethod
     def prepare_data(dataset_name='colorflow'):
@@ -24,12 +27,15 @@ class Network:
     def __init__(self, architecture, opt='adam', lr=None, activation='relu', callbacks=None):
         # type: (Network, List, Union[str, optimizers.Optimizer], float, str, List[Callback]) -> None
         assert hasattr(architecture, "__getitem__")
-
         # Check that architecture vector is first tuples (for convolutions)/MaxOuts,
         # and then integers for the dense layers or 'drop0.2' for a dropout layer
         dense_started = False
-        for i in architecture:
+        drop_prev = True
+        max_prev = True
+        for j in range(len(architecture)):
+            i = architecture[j]
             if hasattr(i, "__getitem__") and not isinstance(i, str):
+                max_prev = False
                 if dense_started:
                     print(architecture)
                     raise TypeError(
@@ -43,6 +49,7 @@ class Network:
 
             elif isinstance(i, int):
                 dense_started = True
+                drop_prev = False
 
             elif isinstance(i, str) and i.lower() in ['max', 'maxout', 'maxpool']:
                 if dense_started:
@@ -52,28 +59,37 @@ class Network:
                         'All MaxPool layers should appear before Dense/Dropout layers.\n'
                         'The part of architecture which cause the problem is ' + str(i)
                     )
+                if max_prev:
+                    del architecture[j]
+                    j -= 1
+                max_prev = True
 
             elif isinstance(i, str) and i.lower().startswith(('drop', 'dropout')):
                 dense_started = True
-                try:
-                    if i.lower().startswith('dropout'):
-                        val = float(i[7:])
-                    else:
-                        val = float(i[4:])
-                    if val >= 1. or val <= 0.:
-                        raise AttributeError(
+                if drop_prev:
+                    del architecture[j]
+                    j -= 1
+                else:
+                    try:
+                        if i.lower().startswith('dropout'):
+                            val = float(i[7:])
+                        else:
+                            val = float(i[4:])
+                        if val >= 1. or val <= 0.:
+                            raise AttributeError(
+                                'Architecute is not correctly formatted.\n'
+                                'Dropout value should be in range (0.0, 1.0).\n'
+                                'The part of architecture which cause the problem is ' + str(i)
+                            )
+                    except ValueError:
+                        raise ValueError(
                             'Architecute is not correctly formatted.\n'
-                            'Dropout value should be in range (0.0, 1.0).\n'
+                            'Arguments for dropout layer should be in form of \'drop\' or \'dropout\' '
+                            'followed by a float.\n'
+                            'In example: dropout.2, drop0.5 are valid inputs.\n'
                             'The part of architecture which cause the problem is ' + str(i)
                         )
-                except ValueError:
-                    raise ValueError(
-                        'Architecute is not correctly formatted.\n'
-                        'Arguments for dropout layer should be in form of \'drop\' or \'dropout\' '
-                        'followed by a float.\n'
-                        'In example: dropout.2, drop0.5 are valid inputs.\n'
-                        'The part of architecture which cause the problem is ' + str(i)
-                    )
+                drop_prev = True
 
             else:
                 raise TypeError(
@@ -82,16 +98,15 @@ class Network:
                     'where 0.x can be any float fraction.\n'
                     'The part of architecture which cause the problem is ' + str(i)
                 )
-
         self.callbacks = callbacks  # type: List[Callback]
         if callbacks is None:
-            self.callbacks = [EarlyStopping(patience=5)]
+            self.callbacks = Network.default_callbacks
         self.model = Sequential()  # type: Sequential
         self.arch = architecture  # type: List
         self.act = activation  # type: str
         self.model_created = False  # type: bool
         if isinstance(opt, optimizers.Optimizer):
-            self.opt = opt
+            self.opt = opt  # type: optimizers.Optimizer
         else:
             self.opt = self.__optimizer(opt, lr=lr)  # type: optimizers.Optimizer
         self.__create_model()
@@ -106,7 +121,7 @@ class Network:
             if opt_name == 'adam':
                 return optimizers.Adam()
             elif opt_name == 'sgd':
-                return optimizers.SGD()
+                return optimizers.SGD(nesterov=True)
             elif opt_name == 'nadam':
                 return optimizers.Nadam()
             elif opt_name == 'rmsprop':
@@ -122,7 +137,7 @@ class Network:
             if opt_name == 'adam':
                 return optimizers.Adam(lr=lr)
             elif opt_name == 'sgd':
-                return optimizers.SGD(lr=lr)
+                return optimizers.SGD(lr=lr, nesterov=True)
             elif opt_name == 'nadam':
                 return optimizers.Nadam(lr=lr)
             elif opt_name == 'rmsprop':
@@ -135,7 +150,7 @@ class Network:
                 return optimizers.Adadelta(lr=lr)
         raise AttributeError('Invalid name of optimizer given.')
 
-    def fit(self, epochs=1, batch_size=100, shuffle='batch', verbose=0):
+    def fit(self, epochs=20, batch_size=100, shuffle='batch', verbose=0):
         self.__score = 0.  # Resets score, so it will not collide w/ scoring it again (but w/ different weights).
         if Network.__x_train is None or Network.__x_val is None or Network.__y_train is None or Network.__y_val is None:
             Network.prepare_data()
@@ -160,6 +175,10 @@ class Network:
             self.__score = f(y_true=self.__y_val, y_score=self.model.predict(self.__x_val))
 
         return self.__score
+
+    def save(self, file_path, overwrite=True):
+        # type: (Network, str, bool) -> None
+        self.model.save(filepath=file_path, overwrite=overwrite)
 
     def __create_model(self):
         if self.model_created:
@@ -222,29 +241,24 @@ class Network:
         # type: (Network, Dict[str, List]) -> Network
         layer = random.randint(0, len(self.arch))
 
-        conv_max = True
-        dense_drop = True
-
-        if layer != 0 and not \
-                (hasattr(self.arch[layer - 1], "__getitem__") and not isinstance(self.arch[layer - 1], str)) or \
-                (isinstance(self.arch[layer - 1], str)
-                 and self.arch[layer - 1].lower() in ['max', 'maxout', 'maxpool']):
-            conv_max = False
-
-        elif layer <= len(self.arch) and not \
-                (isinstance(self.arch[layer], int) or
-                 isinstance(self.arch[layer], str) and
-                 self.arch[layer].lower().startswith(('drop', 'dropout'))):
-            dense_drop = False
-
         possible_layers = {}
-        if conv_max:
-            possible_layers['max'] = 'max'
+
+        if layer == 0 or (hasattr(self.arch[layer - 1], '__getitem') and
+                          (isinstance(self.arch[layer - 1], str) and
+                           self.arch[layer - 1].lower() in ['max', 'maxout', 'maxpool'] or
+                           not isinstance(self.arch[layer - 1], str))):
             possible_layers['conv'] = \
                 (random.choice(params['kernel_size']), random.choice(params['conv_filters']))
-        if dense_drop:
+        if layer > 0 and (hasattr(self.arch[layer - 1], '__getitem') and not isinstance(self.arch[layer - 1], str)):
+            possible_layers['max'] = 'max'
+
+        if layer == len(self.arch) or (isinstance(self.arch[layer], int) or isinstance(self.arch[layer], str) and
+                                       self.arch[layer].lower().startswith(('drop', 'dropout'))):
             possible_layers['dense'] = random.choice(params['dense_size'])
+
+        if layer > 0 and isinstance(self.arch[layer], int):
             possible_layers['drop'] = 'drop' + str(random.choice(params['dropout']))
+
         added_layer = random.choice(possible_layers.values())
         return Network(architecture=self.arch[:layer] + [added_layer] + self.arch[layer:], opt=self.opt,
                        activation=self.act, callbacks=self.callbacks)
@@ -266,3 +280,15 @@ class Network:
         # type: (Network, Dict[str, List]) -> Network
         return Network(architecture=self.arch, opt=self.opt, activation=random.choice(params['activation']),
                        callbacks=self.callbacks)
+
+    def change_lr_schedule(self, params):
+        # type: (Network, Dict[str, List]) -> Network
+        if random.choice(params['learning_decay_type']) == 'linear':
+            def schedule(x):
+                return self.opt.get_config()['lr'] - float(x * random.choice(params['learning_decay_rate']))
+        else:
+            def schedule(x):
+                return self.opt.get_config()['lr'] - float(np.exp(-x*random.choice(params['learning_decay_rate'])))
+
+        return Network(architecture=self.arch, opt=self.opt, activation=self.act,
+                       callbacks=Network.default_callbacks + [LearningRateScheduler(schedule)])

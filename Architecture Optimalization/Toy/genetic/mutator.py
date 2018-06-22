@@ -5,6 +5,7 @@ import random
 import numpy as np
 from typing import List, Dict
 
+import log_save
 from network import Network
 
 '''
@@ -24,8 +25,10 @@ class __Mutator(object):
                 'conv_filters': [8, 16],
                 'dropout': [0.3, 0.4, 0.5, 0.6, 0.7],
                 'dense_size': [32, 64, 128, 256],
-                'optimizer': ['adam', 'sgd', 'nadam', 'adamax', 'adadelta', 'rmsprop', 'adagrad'],
+                'optimizer': ['adam', 'sgd', 'nadam'],
                 'optimizer_lr': [None, .0001, .0003, .001, .003, .01],
+                'learning_decay_type': ['linear', 'exp'],
+                'learning_decay_rate': [0.7, 0.8, 0.9],
                 'activation': ['relu', 'sigmoid', 'tanh']
             }
 
@@ -41,10 +44,14 @@ class __Mutator(object):
             self, population_size=10, generations=20, saving_dir=None,
             epochs=1, batch_size=100, shuffle='batch', verbose=0, dataset='colorflow'
     ):
+        # type: (__Mutator, int, int, str, int, int, str, int, str) -> str
         Network.prepare_data(dataset)
 
         if saving_dir is None:
             saving_dir = 'genetic_models/'
+
+        if not saving_dir.endswith('/'):
+            saving_dir += '/'
 
         if not os.path.exists(saving_dir):
             os.makedirs(saving_dir)
@@ -58,45 +65,70 @@ class __Mutator(object):
 
         scores = []  # Needed to suppress warnings.
 
+        log_save.print_message('')
+        log_save.print_message('Started a new job.')
+
         for i in range(generations):
 
             Network.prepare_data(dataset)
 
+            log_save.print_message('Starting training for generation %d' % (i + 1))
+
             for net in self.networks:
                 net.fit(epochs=epochs, batch_size=batch_size, shuffle=shuffle, verbose=verbose)
 
-            scores = {}
+            log_save.print_message('Finished training for generation %d' % (i + 1))
+
+            tmp_scores = {}  # type: Dict[Network, float]
             best_net = None  # type: Network
 
             for net in self.networks:
-                scores[net] = net.score()
-                if best_net is None or scores[net] > scores[best_net]:
+                tmp_scores[net] = net.score()
+                if best_net is None or tmp_scores[net] > tmp_scores[best_net]:
                     best_net = net
 
-            scores = collections.OrderedDict(sorted(scores.items(), key=lambda t: t[1]))
+            scores = collections.OrderedDict(sorted(tmp_scores.items(), key=lambda t: t[1]))
 
-            print('Generation {generation}.\n'
-                  'Best network, with architecture: {arch},\n'
-                  'optimizer {opt},\n'
-                  'and activation function {act}.\n'
-                  'It\'s score is {score}.\n'.format(generation=i + 1, arch=best_net.arch, opt=best_net.opt,
-                                                     act=best_net.act, score=scores[best_net])
-                  )
+            printing = {
+                0: 'Generation {gen}. Best network scored: {score}'.format(gen=i+1, score=scores[best_net]),
+                1: 'Generation {gen}. Best network, with architecture: {arch}, optimizer {opt}, and activation '
+                   'function {act}. It\'s score is {score}.'.format(
+                    gen=i + 1, arch=best_net.arch, opt=best_net.opt, act=best_net.act, score=scores[best_net]
+                ),
+                2: 'Generation {gen}. Best network, with architecture: {arch}, optimizer {opt}, and activation '
+                   'function {act}. It\'s score is {score}.'.format(
+                    gen=i + 1, arch=best_net.arch, opt=best_net.opt, act=best_net.act, score=scores[best_net]
+                )
+            }
+            log_save.print_message(printing[verbose])
 
-            # Remove bottom half of population.
-            for _ in range(int(population_size/2)):
-                scores.popitem(last=False)
+            # Save the best net of current generation.
+            best_net.save(file_path='{dir}net_{num:03d}.h5'.format(dir=saving_dir, num=i+1))
 
-            self.networks = scores.keys()
-            new_nets = []
+            if not i + 1 == generations:
 
-            for net in self.networks:
-                new_nets.append(self.__mutate(net))
+                # Remove bottom half of population.
+                for _ in range(int(population_size/2)):
+                    scores.popitem(last=False)
 
-            for net in new_nets:
-                self.networks.append(net)
+                self.networks = scores.keys()
+                new_nets = []
 
-        print(scores.popitem())
+                for net in self.networks:
+                    new_nets.append(self.__mutate(net))
+
+                for net in new_nets:
+                    self.networks.append(net)
+
+        best = scores.popitem()
+        best_score = best[1]
+        best_net = best[0]
+
+        return ('Best network, with architecture: {arch}, optimizer {opt}, and activation function {act}.'
+                'It\'s score is {score}.'.format(
+                    arch=best_net.arch, opt=best_net.opt, act=best_net.act, score=best_score
+                    )
+                )
 
     def __create_random_model(self):
         # type: (__Mutator) -> Network
@@ -106,12 +138,13 @@ class __Mutator(object):
         # Two variables for probability of:
         #   r_min - adding any new layer,
         #   r_mid - distinguishing between two types of layers for each part of arch.
-        r_min = .35
-        r_mid = .8
+        r_min = .33
+        r_mid = .66
 
         # Convolution/Maxout part of architecture
         r = random.random()
         while r > r_min:
+            r = random.random()
             if r > r_mid:
                 architecture.append('max')
             else:
@@ -123,6 +156,7 @@ class __Mutator(object):
         architecture.append(random.choice(self.params.get('dense_size')))
         r = random.random()
         while r > r_min:
+            r = random.random()
             if r > r_mid:
                 architecture.append('drop%.2f' % random.choice(self.params.get('dropout')))
             else:
