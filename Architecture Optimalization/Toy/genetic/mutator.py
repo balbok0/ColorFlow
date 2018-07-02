@@ -174,7 +174,8 @@ class __Mutator(object):
         if self.params == {}:
             raise Exception('Mutator not initialized.')
 
-        possible_changes = [Network.add_layer, Network.remove_layer, Network.change_opt, Network.change_activation]
+        possible_changes = [Network.add_layer, Network.remove_layer, Network.change_opt, Network.change_activation,
+                            Network.change_lr_schedule]
 
         # Number of changes is capped, and distributed exponentially.
         n_of_changes = int(1 + np.random.exponential())

@@ -249,6 +249,7 @@ class Network:
                            not isinstance(self.arch[layer - 1], str))):
             possible_layers['conv'] = \
                 (random.choice(params['kernel_size']), random.choice(params['conv_filters']))
+
         if layer > 0 and (hasattr(self.arch[layer - 1], '__getitem') and not isinstance(self.arch[layer - 1], str)):
             possible_layers['max'] = 'max'
 

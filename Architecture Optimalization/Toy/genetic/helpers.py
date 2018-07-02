@@ -1,7 +1,11 @@
 import random
+import warnings
 from collections import defaultdict
 
+import keras
 import numpy as np
+from keras.layers import MaxPool2D, Layer, Flatten, Dense, Dropout, Conv2D
+from keras.models import Sequential, Model
 from keras.utils.io_utils import HDF5Matrix
 from scipy import interp
 from sklearn.metrics import roc_curve, auc
@@ -84,7 +88,7 @@ def prepare_data(dataset_name='colorflow', first_time=True):
     name = dataset_name.lower()
 
     # Needed for typing.
-    (x_train, y_train), (x_val, y_val) = (None, None), (None, None)  # type: Array_Type
+    (_, _), (x_val, y_val) = (None, None), (None, None)  # type: Array_Type
 
     if name in ['cifar', 'cifar10']:
         from keras.datasets import cifar10
@@ -150,3 +154,120 @@ def prepare_data(dataset_name='colorflow', first_time=True):
         raise AttributeError('Invalid name of dataset.')
 
     return (x_train, y_train), (x_val, y_val)
+
+
+def arch_to_layer(layer, activation):
+    # type: (str, str) -> Layer
+    if hasattr(layer, '__getitem__') and not isinstance(layer, str):
+        return Conv2D(filters=layer[1], kernel_size=layer[0], activation=activation, kernel_initializer='he_uniform',
+                      padding='same')
+
+    elif isinstance(layer, int):
+        return Dense(units=layer, activation=activation)
+
+    elif isinstance(layer, str) and layer.lower() in ['m', 'max', 'maxout', 'maxpool']:
+        return MaxPool2D()
+
+    elif isinstance(layer, str) and layer.lower().startswith(('drop', 'dropout')):
+        if layer.lower().startswith('dropout'):
+            return Dropout(rate=float(layer[7:]))
+        else:
+            return Dropout(rate=float(layer[4:]))
+    else:
+        raise BaseException('Illegal form of argument layer. '
+                            'Please modify fix the argument, or modify this file, to allow different args.')
+
+
+def insert_layer(model, layer, index):
+    # type: (Model, Layer, int) -> Model
+    """
+    Immutable. Creates copy of a model, adds a layer at a given index, and returns it.
+
+    :param model: A model, which copy will be modified and returned.
+    :param layer: A layer to be inserted.
+    :param index: An index at which layer is supposed to be inserted at. > 0 and < len(layers) - 1
+    :return: A new model, with specified layer inserted at specified index. Not complied yet.
+    """
+    # Copy of the whole model. Deep copy, due to safety.
+    model_copy = keras.models.clone_model(model)
+    model_copy.set_weights(model.get_weights())
+
+    result = Sequential()
+
+    # Such a deep copy is needed, so that input_shape is not specified, and layers are not shared.
+    for l in model_copy.layers[:index]:
+        result.add(__clone_layer(l))
+    result.add(layer)
+    for l in model_copy.layers[index:]:
+        result.add(__clone_layer(l))
+
+    # Needed to clone weights.
+    weight_number_before = 0
+    for l in model_copy.layers[:index]:
+        weight_number_before += len(l.get_weights())
+    weight_number_after = weight_number_before + len(layer.get_weights()) + len(model_copy.layers[index].get_weights())
+
+    if isinstance(layer, MaxPool2D):
+        # MaxPool changes shape of the output, thus weights will not have the same shape.
+        new_weights = model.get_weights()[:weight_number_before]
+        new_weights += result.get_weights()[weight_number_before:]
+
+    else:
+        new_weights = model.get_weights()[:weight_number_before]
+        new_weights += result.get_weights()[weight_number_before:weight_number_after]
+        new_weights += model.get_weights()[weight_number_before + len(model_copy.layers[index].get_weights()):]
+
+    result.set_weights(new_weights)
+    return result
+
+
+def remove_layer(model, index):
+    # type: (Model, int) -> Model
+    """
+    Immutable. Creates copy of a model, removes a layer at a given index, and returns it.
+
+    :param model: A model, which copy will be modified and returned.
+    :param index: index of layer to be removed. > 0 < len(layers) - 1
+    :return: A new model, with a layer at specified index removed. Not compiled yet.
+    """
+    # Copy of the whole model. Deep copy, due to safety.
+    model_copy = keras.models.clone_model(model)
+    model_copy.set_weights(model.get_weights())
+
+    layer = model_copy.layers[index]  # type: Layer
+
+    warnings.warn("Since a layer at a chosen index is changing shape of data, model doesn't have to compile.") \
+        if isinstance(layer, Flatten) else None
+
+    result = Sequential()
+
+    # Such a deep copy is needed, so that input_shape is not specified, and layers are not shared.
+    for l in model_copy.layers[:index]:
+        result.add(__clone_layer(l))
+
+    for l in model_copy.layers[(index+1):]:
+        result.add(__clone_layer(l))
+
+    # Needed to clone weights.
+    weight_number_before = 0
+    for l in model_copy.layers[:index]:
+        weight_number_before += len(l.get_weights())
+    weight_number_after = weight_number_before + len(model_copy.layers[index].get_weights())
+
+    if isinstance(layer, MaxPool2D):
+        # MaxPool changes shape of the output, thus weights will not have the same shape.
+        new_weights = model.get_weights()[:weight_number_before]
+        new_weights += result.get_weights()[weight_number_before:]
+
+    else:
+        new_weights = model.get_weights()[:weight_number_before]
+        new_weights += result.get_weights()[weight_number_before:weight_number_after]
+        new_weights += model.get_weights()[weight_number_before + len(model_copy.layers[index].get_weights()):]
+
+    result.set_weights(new_weights)
+    return result
+
+
+def __clone_layer(layer):
+    # type: (Layer) -> Layer
+    return type(layer).from_config(layer.get_config())
