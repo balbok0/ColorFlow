@@ -119,6 +119,7 @@ class Network:
         else:
             assert helpers.assert_model_arch_match(copy_model, architecture)
             self.model = clone_model(copy_model)
+            self.model.set_weights(copy_model.get_weights())
             if self.act != activation:
                 for l in self.model.layers[1:-1]:  # type: Layer
                     if not isinstance(l, (Activation, MaxPool2D, Flatten, Dropout)):
