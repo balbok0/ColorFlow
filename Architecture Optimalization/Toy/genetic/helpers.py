@@ -4,7 +4,8 @@ from collections import defaultdict
 
 import keras
 import numpy as np
-from keras.layers import MaxPool2D, Layer, Flatten, Dense, Dropout, Conv2D
+from keras.activations import softmax, softplus, softsign, elu, relu, selu, linear, tanh, sigmoid, hard_sigmoid
+from keras.layers import MaxPool2D, Layer, Flatten, Dense, Dropout, Conv2D, Activation
 from keras.models import Sequential, Model
 from keras.utils.io_utils import HDF5Matrix
 from scipy import interp
@@ -12,6 +13,19 @@ from sklearn.metrics import roc_curve, auc
 from typing import Dict, List, Tuple, Union
 
 Array_Type = Union[HDF5Matrix, np.ndarray]
+
+activations_function_calls = {
+    'softmax': softmax,
+    'elu': elu,
+    'selu': selu,
+    'softplus': softplus,
+    'softsign': softsign,
+    'relu': relu,
+    'tanh': tanh,
+    'sigmoid': sigmoid,
+    'hard_sigmoid': hard_sigmoid,
+    'linear': linear
+}
 
 
 def multi_roc_score(y_true, y_score):
@@ -176,6 +190,33 @@ def arch_to_layer(layer, activation):
     else:
         raise BaseException('Illegal form of argument layer. '
                             'Please modify fix the argument, or modify this file, to allow different args.')
+
+
+def layer_to_arch(layer):
+    # type: (Layer) -> list
+    if isinstance(layer, Conv2D):
+        return [(layer.get_config()['kernel_size'], layer.get_config()['filters'])]
+    elif isinstance(layer, MaxPool2D):
+        return ['max']
+    elif isinstance(layer, Dropout):
+        return ['drop%.2f' % layer.get_config()['rate'], 'dropout%.2f' % layer.get_config()['rate']]
+    elif isinstance(layer, Dense):
+        return [layer.get_config()['units']]
+    else:
+        return [None]
+
+
+def assert_model_arch_match(model, arch):
+    # type: (Model, List) -> bool
+    arch_idx = 0
+    for l in model.layers[1:-1]:  # type: Layer
+        if isinstance(l, (Activation,Flatten)):
+            arch_idx -= 1
+        else:
+            if not arch[arch_idx] in layer_to_arch(l):
+                return False
+        arch_idx += 1
+    return True
 
 
 def find_first_dense(model):

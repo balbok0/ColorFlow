@@ -3,8 +3,8 @@ import random
 import numpy as np
 from keras import optimizers
 from keras.callbacks import EarlyStopping, LearningRateScheduler, Callback
-from keras.layers import Activation, Dense, Flatten, Dropout, Conv2D, MaxPool2D
-from keras.models import Sequential
+from keras.layers import Activation, Dense, Flatten, Dropout, Conv2D, MaxPool2D, Layer
+from keras.models import Sequential, clone_model, Model
 from typing import List, Dict, Union
 
 import helpers
@@ -24,8 +24,8 @@ class Network:
             (Network.__x_train, Network.__y_train), (_, __) = \
                 helpers.prepare_data(dataset_name=dataset_name, first_time=False)
 
-    def __init__(self, architecture, opt='adam', lr=None, activation='relu', callbacks=None):
-        # type: (Network, List, Union[str, optimizers.Optimizer], float, str, List[Callback]) -> None
+    def __init__(self, architecture, copy_model=None, opt='adam', lr=None, activation='relu', callbacks=None):
+        # type: (Network, List, Model, Union[str, optimizers.Optimizer], float, str, List[Callback]) -> None
         assert hasattr(architecture, "__getitem__")
         # Check that architecture vector is first tuples (for convolutions)/MaxOuts,
         # and then integers for the dense layers or 'drop0.2' for a dropout layer
@@ -105,7 +105,6 @@ class Network:
         self.callbacks = callbacks  # type: List[Callback]
         if callbacks is None:
             self.callbacks = Network.default_callbacks
-        self.model = Sequential()  # type: Sequential
         self.arch = architecture  # type: List
         self.act = activation  # type: str
         self.model_created = False  # type: bool
@@ -113,8 +112,17 @@ class Network:
             self.opt = opt  # type: optimizers.Optimizer
         else:
             self.opt = self.__optimizer(opt, lr=lr)  # type: optimizers.Optimizer
-        self.__create_model()
         self.__score = 0.  # type: float
+        if copy_model is None:
+            self.model = Sequential()  # type: Sequential
+            self.__create_model()
+        else:
+            assert helpers.assert_model_arch_match(copy_model, architecture)
+            self.model = clone_model(copy_model)
+            if self.act != activation:
+                for l in self.model.layers[1:-1]:  # type: Layer
+                    if not isinstance(l, (Activation, MaxPool2D, Flatten, Dropout)):
+                        l.activation = helpers.activations_function_calls[activation]
 
     @staticmethod
     def __optimizer(opt_name, lr=None):
@@ -246,10 +254,8 @@ class Network:
         # type: (Network, Dict[str, List]) -> Network
         layer_idx = random.randint(0, len(self.arch))
 
-        print('{}/{}'.format(layer_idx, len(self.arch)))
-        print(self.arch)
         possible_layers = {}
-        print()
+
         if layer_idx == 0:
             possible_layers['conv'] = random.choice(params['kernel_size']), random.choice(params['conv_filters'])
         elif layer_idx == len(self.arch):
@@ -271,20 +277,21 @@ class Network:
                         and not (isinstance(prev_layer, str) and prev_layer.startswith('drop')):
                     possible_layers['drop'] = 'drop' + str(random.choice(params['dropout']))
 
-        print(possible_layers)
-
         layer_name = random.choice(possible_layers.values())
 
-        dummy_net = Network(architecture=[], opt=self.opt, activation=self.act, callbacks=self.callbacks)
-        dummy_net.arch = self.arch[:layer_idx] + [layer_name] + self.arch[layer_idx:]
+        new_arch = self.arch[:layer_idx] + [layer_name] + self.arch[layer_idx:]
 
         layer_idx += 1  # difference between self.arch and actual architecture. - First activation layer.
         if isinstance(layer_name, int) or (isinstance(layer_name, str) and layer_name.startswith('drop')):
             layer_idx += 1  # difference between self.arch and actual architecture. - Flatten layer.
 
-        dummy_net.model = helpers.insert_layer(self.model, helpers.arch_to_layer(layer_name, self.act), layer_idx)
-
-        return dummy_net
+        return Network(
+            architecture=new_arch,
+            copy_model=helpers.insert_layer(self.model, helpers.arch_to_layer(layer_name, self.act), layer_idx),
+            opt=self.opt,
+            activation=self.act,
+            callbacks=self.callbacks
+        )
 
     def remove_layer(self, params):
         # type: (Network, Dict[str, List]) -> Network
@@ -292,29 +299,40 @@ class Network:
             return self.add_layer(params)
         layer_idx = random.randint(1, len(self.arch) - 2)  # so that, Conv is always first, and Dense is always last.
         layer_name = self.arch[layer_idx]
-        print(layer_idx)
-        print(layer_name)
-        self.model.summary()
-        dummy_net = Network(architecture=[], opt=self.opt, activation=self.act, callbacks=self.callbacks)
-        dummy_net.arch = self.arch[:layer_idx] + self.arch[layer_idx + 1:]
+        new_arch = self.arch[:layer_idx] + self.arch[layer_idx + 1:]
 
         layer_idx += 1  # difference between self.arch and actual architecture. - First activation layer.
         if isinstance(layer_name, int) or (isinstance(layer_name, str) and layer_name.startswith('drop')):
             layer_idx += 1  # difference between self.arch and actual architecture. - Flatten layer.
 
-        dummy_net.model = helpers.remove_layer(self.model, layer_idx)
-        dummy_net.model.summary()
-        return dummy_net
+        return Network(
+            architecture=new_arch,
+            copy_model=helpers.remove_layer(self.model, layer_idx),
+            opt=self.opt,
+            activation=self.act,
+            callbacks=self.callbacks
+        )
 
     def change_opt(self, params):
         # type: (Network, Dict[str, List]) -> Network
-        return Network(architecture=self.arch, opt=random.choice(params['optimizer']),
-                       lr=random.choice(params['optimizer_lr']), activation=self.act, callbacks=self.callbacks)
+        return Network(
+            architecture=self.arch,
+            copy_model=self.model,
+            opt=random.choice(params['optimizer']),
+            lr=random.choice(params['optimizer_lr']),
+            activation=self.act,
+            callbacks=self.callbacks
+        )
 
     def change_activation(self, params):
         # type: (Network, Dict[str, List]) -> Network
-        return Network(architecture=self.arch, opt=self.opt, activation=random.choice(params['activation']),
-                       callbacks=self.callbacks)
+        return Network(
+            architecture=self.arch,
+            copy_model=self.model,
+            opt=self.opt,
+            activation=random.choice(params['activation']),
+            callbacks=self.callbacks
+        )
 
     def change_lr_schedule(self, params):
         # type: (Network, Dict[str, List]) -> Network
@@ -325,5 +343,10 @@ class Network:
             def schedule(x):
                 return self.opt.get_config()['lr'] - float(np.exp(-x * random.choice(params['learning_decay_rate'])))
 
-        return Network(architecture=self.arch, opt=self.opt, activation=self.act,
-                       callbacks=Network.default_callbacks + [LearningRateScheduler(schedule)])
+        return Network(
+            architecture=self.arch,
+            copy_model=self.model,
+            opt=self.opt,
+            activation=self.act,
+            callbacks=Network.default_callbacks + [LearningRateScheduler(schedule)]
+        )
