@@ -178,6 +178,18 @@ def arch_to_layer(layer, activation):
                             'Please modify fix the argument, or modify this file, to allow different args.')
 
 
+def find_first_dense(model):
+    # type: (Model) -> (int, int)
+    layer_idx = 0
+    weight_idx = 0
+    for l in model.layers():
+        if isinstance(l, Dense):
+            break
+        layer_idx += 1
+        weight_idx += len(l.get_weights())
+    return layer_idx, weight_idx
+
+
 def insert_layer(model, layer, index):
     # type: (Model, Layer, int) -> Model
     """
@@ -191,6 +203,8 @@ def insert_layer(model, layer, index):
     # Copy of the whole model. Deep copy, due to safety.
     model_copy = keras.models.clone_model(model)
     model_copy.set_weights(model.get_weights())
+
+    model_copy.summary()
 
     result = Sequential()
 
@@ -214,9 +228,15 @@ def insert_layer(model, layer, index):
 
     else:
         new_weights = model.get_weights()[:weight_number_before]
-        new_weights += result.get_weights()[weight_number_before:weight_number_after]
-        new_weights += model.get_weights()[weight_number_before + len(model_copy.layers[index].get_weights()):]
+        if (index < len(model_copy.layers) and isinstance(model_copy.layers[index], Flatten)) or \
+                (index < len(model_copy.layers) - 1 and isinstance(model_copy.layers[index], MaxPool2D) and
+                    isinstance(model_copy.layers[index+1], Flatten)):
+            new_weights += result.get_weights()[weight_number_before:]
+        else:
+            new_weights += result.get_weights()[weight_number_before:weight_number_after]
+            new_weights += model.get_weights()[weight_number_before + len(model_copy.layers[index].get_weights()):]
 
+    result.summary()
     result.set_weights(new_weights)
     return result
 

@@ -18,7 +18,7 @@ class Network:
     @staticmethod
     def prepare_data(dataset_name='colorflow'):
         if Network.__x_val is None or Network.__y_val is None:
-            (Network.__x_train, Network.__y_train), (Network.__x_val, Network.__y_val) =\
+            (Network.__x_train, Network.__y_train), (Network.__x_val, Network.__y_val) = \
                 helpers.prepare_data(dataset_name=dataset_name)
         else:
             (Network.__x_train, Network.__y_train), (_, __) = \
@@ -32,6 +32,8 @@ class Network:
         dense_started = False
         drop_prev = True
         max_prev = True
+        idx_to_remove = []
+
         for j in range(len(architecture)):
             i = architecture[j]
             if hasattr(i, "__getitem__") and not isinstance(i, str):
@@ -60,15 +62,13 @@ class Network:
                         'The part of architecture which cause the problem is ' + str(i)
                     )
                 if max_prev:
-                    del architecture[j]
-                    j -= 1
+                    idx_to_remove = [j] + idx_to_remove
                 max_prev = True
 
             elif isinstance(i, str) and i.lower().startswith(('drop', 'dropout')):
                 dense_started = True
                 if drop_prev:
-                    del architecture[j]
-                    j -= 1
+                    idx_to_remove = [j] + idx_to_remove
                 else:
                     try:
                         if i.lower().startswith('dropout'):
@@ -98,6 +98,10 @@ class Network:
                     'where 0.x can be any float fraction.\n'
                     'The part of architecture which cause the problem is ' + str(i)
                 )
+
+        for idx in idx_to_remove:
+            architecture.pop(idx)
+
         self.callbacks = callbacks  # type: List[Callback]
         if callbacks is None:
             self.callbacks = Network.default_callbacks
@@ -196,31 +200,29 @@ class Network:
         last_max_pool = True
         last_dropout = True
         for i in self.arch:
+            new_layer = helpers.arch_to_layer(i, self.act)
 
-            if hasattr(i, '__getitem__') and not isinstance(i, str):
+            if isinstance(new_layer, Conv2D):
                 last_max_pool = False
-                self.model.add(
-                    Conv2D(filters=i[1], kernel_size=i[0], activation=self.act, kernel_initializer='he_uniform',
-                           padding='same')
-                )
+                self.model.add(new_layer)
 
-            elif isinstance(i, int):
+            elif isinstance(new_layer, Dense):
                 if len(self.model.output_shape) > 2:
                     self.model.add(Flatten())
                 last_dropout = False
-                self.model.add(Dense(units=i, activation=self.act))
+                self.model.add(new_layer)
 
-            elif isinstance(i, str) and i.lower() in ['m', 'max', 'maxout', 'maxpool']:
+            elif isinstance(new_layer, MaxPool2D):
                 if not last_max_pool:
                     if self.model.output_shape[1] > 2:  # asserts that there's not too many maxpools
-                        self.model.add(MaxPool2D())
+                        self.model.add(new_layer)
                         last_max_pool = True
                     else:
                         self.arch.remove(i)
                 else:
                     self.arch.remove(i)
 
-            elif isinstance(i, str) and i.lower().startswith(('drop', 'dropout')):
+            elif isinstance(new_layer, Dropout):
                 if not last_dropout:
                     if len(self.model.output_shape) > 2:
                         self.model.add(Flatten())
@@ -228,6 +230,9 @@ class Network:
                         self.model.add(Dropout(rate=float(i[7:])))
                     else:
                         self.model.add(Dropout(rate=float(i[4:])))
+                    last_dropout = True
+                else:
+                    self.arch.remove(i)
 
             else:
                 raise TypeError('Architecture is not correctly formatted.')
@@ -239,38 +244,67 @@ class Network:
 
     def add_layer(self, params):
         # type: (Network, Dict[str, List]) -> Network
-        layer = random.randint(0, len(self.arch))
+        layer_idx = random.randint(0, len(self.arch))
 
+        print('{}/{}'.format(layer_idx, len(self.arch)))
+        print(self.arch)
         possible_layers = {}
-
-        if layer == 0 or (hasattr(self.arch[layer - 1], '__getitem') and
-                          (isinstance(self.arch[layer - 1], str) and
-                           self.arch[layer - 1].lower() in ['max', 'maxout', 'maxpool'] or
-                           not isinstance(self.arch[layer - 1], str))):
-            possible_layers['conv'] = \
-                (random.choice(params['kernel_size']), random.choice(params['conv_filters']))
-
-        if layer > 0 and (hasattr(self.arch[layer - 1], '__getitem') and not isinstance(self.arch[layer - 1], str)):
-            possible_layers['max'] = 'max'
-
-        if layer == len(self.arch) or (isinstance(self.arch[layer], int) or isinstance(self.arch[layer], str) and
-                                       self.arch[layer].lower().startswith(('drop', 'dropout'))):
+        print()
+        if layer_idx == 0:
+            possible_layers['conv'] = random.choice(params['kernel_size']), random.choice(params['conv_filters'])
+        elif layer_idx == len(self.arch):
             possible_layers['dense'] = random.choice(params['dense_size'])
+        else:
+            prev_layer = self.arch[layer_idx - 1]
+            next_layer = self.arch[layer_idx]
+            if hasattr(prev_layer, '__getitem__') and \
+                    (not isinstance(prev_layer, str) or (isinstance(prev_layer, str) and prev_layer.startswith('max'))):
+                possible_layers['conv'] = (random.choice(params['kernel_size']), random.choice(params['conv_filters']))
+                if not (isinstance(prev_layer, str) or (isinstance(next_layer, str) and next_layer.startswith('max'))):
+                    possible_layers['max'] = 'max'
 
-        if layer > 0 and isinstance(self.arch[layer], int):
-            possible_layers['drop'] = 'drop' + str(random.choice(params['dropout']))
+            check_if_flat = lambda x: isinstance(x, int) or (isinstance(x, str) and x.startswith('drop'))
 
-        added_layer = random.choice(possible_layers.values())
-        return Network(architecture=self.arch[:layer] + [added_layer] + self.arch[layer:], opt=self.opt,
-                       activation=self.act, callbacks=self.callbacks)
+            if check_if_flat(next_layer):
+                possible_layers['dense'] = random.choice(params['dense_size'])
+                if isinstance(next_layer, int) and check_if_flat(prev_layer) \
+                        and not (isinstance(prev_layer, str) and prev_layer.startswith('drop')):
+                    possible_layers['drop'] = 'drop' + str(random.choice(params['dropout']))
+
+        print(possible_layers)
+
+        layer_name = random.choice(possible_layers.values())
+
+        dummy_net = Network(architecture=[], opt=self.opt, activation=self.act, callbacks=self.callbacks)
+        dummy_net.arch = self.arch[:layer_idx] + [layer_name] + self.arch[layer_idx:]
+
+        layer_idx += 1  # difference between self.arch and actual architecture. - First activation layer.
+        if isinstance(layer_name, int) or (isinstance(layer_name, str) and layer_name.startswith('drop')):
+            layer_idx += 1  # difference between self.arch and actual architecture. - Flatten layer.
+
+        dummy_net.model = helpers.insert_layer(self.model, helpers.arch_to_layer(layer_name, self.act), layer_idx)
+
+        return dummy_net
 
     def remove_layer(self, params):
         # type: (Network, Dict[str, List]) -> Network
-        if len(self.arch) > 1:
+        if len(self.arch) <= 2:
             return self.add_layer(params)
-        layer = random.randint(0, len(self.arch) - 1)
-        return Network(architecture=self.arch[:layer] + self.arch[layer + 1:], opt=self.opt, activation=self.act,
-                       callbacks=self.callbacks)
+        layer_idx = random.randint(1, len(self.arch) - 2)  # so that, Conv is always first, and Dense is always last.
+        layer_name = self.arch[layer_idx]
+        print(layer_idx)
+        print(layer_name)
+        self.model.summary()
+        dummy_net = Network(architecture=[], opt=self.opt, activation=self.act, callbacks=self.callbacks)
+        dummy_net.arch = self.arch[:layer_idx] + self.arch[layer_idx + 1:]
+
+        layer_idx += 1  # difference between self.arch and actual architecture. - First activation layer.
+        if isinstance(layer_name, int) or (isinstance(layer_name, str) and layer_name.startswith('drop')):
+            layer_idx += 1  # difference between self.arch and actual architecture. - Flatten layer.
+
+        dummy_net.model = helpers.remove_layer(self.model, layer_idx)
+        dummy_net.model.summary()
+        return dummy_net
 
     def change_opt(self, params):
         # type: (Network, Dict[str, List]) -> Network
@@ -289,7 +323,7 @@ class Network:
                 return self.opt.get_config()['lr'] - float(x * random.choice(params['learning_decay_rate']))
         else:
             def schedule(x):
-                return self.opt.get_config()['lr'] - float(np.exp(-x*random.choice(params['learning_decay_rate'])))
+                return self.opt.get_config()['lr'] - float(np.exp(-x * random.choice(params['learning_decay_rate'])))
 
         return Network(architecture=self.arch, opt=self.opt, activation=self.act,
                        callbacks=Network.default_callbacks + [LearningRateScheduler(schedule)])
