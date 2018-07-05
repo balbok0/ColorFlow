@@ -1,0 +1,37 @@
+TODO: tpr=0.5 -> fpr as a metric
+    - Should there be a choice between this and auc, or should I try to combine them.
+    - Actually, why not F-score? It seems to make more sense, as it looks at tpr=0.5, but also looks at fpr, tnr, fnr.
+TODO: Momentum as a parameter (READ: hw they behave/conserve in keras with one-by-one epoch calls)
+    - Not using, one-by-one epoch calls anymore, due to learning decay as parameter.
+    - Since, different opt algorithms have different key-words for momentum (ex. beta_1, beta_2, momentum),
+    how should I handle it?
+22/06: Learning decay as a parameter:
+    - Used Learning rate scheduler: still needs to change some it in __mutate in __Mutator.
+TODO: Check the size of the training dataset: https://github.com/36000/cnn_colorflow/blob/master/lcurve.py
+    - Need to clone from John.
+22/06: Create log file support, instead of printing to console:
+    - Done, prints to do bottom of the file.
+22/06: No Two max_outs/dropouts in a row:
+    - Done, however without possibility of different configs (ex. always two convs in a row, before maxout).
+05/07: Use weights of the old network, while creating a new one.
+    - 23/06 - add layer - Testing how different layers behave.
+    - 28/06 - add layer - First approach, by creating three models, and then merging them.
+    - 29/06 - add layer - Deleted first approach.
+                            New Approach:
+                                1. Create a new model.
+                                2. Populate it with copies of old model.
+                                3. Set weights to ones from last model + new weights for a new layer.
+    - 01/07 - rmv layer - Added a function to remove a layer. Fails, if the layer is first one, or last one.
+                            That's not the case in this research though. (First layer is always Activation,
+                            last one is Dense w/ 2 neurons).
+    - 02/07 - add layer - Implemented into mutating.
+                            Fixed a bug when a Conv layer is added right before MaxOut before Flatten.
+                            Easy fix though, can be done more efficiently when copying weights.
+    - 03/07 - bth fn's  - Implemented remove into mutating.
+                            Changed __init__ of network, so that it's easier to make new mutation combinations.
+                            Made a function to find a weight index of first Dense layer.
+    - 04/07 - bth fn's  - Implemented a function to copy weights from a middle of next dense layer.
+    - 05/07 - bth fn's  - Fixed minor bugs, which resulted in incorrect shape.
+02-05/07: Make it Maxout safe, when adding new layer. AKA implement limit so that maxpool cannot be added if previous/next layer is maxpool:
+    - Fixed during problem above.
+TODO: Bug. Sometimes training pops out NaNs. Understand why, fix. It's not optimizer, unless there's something wrong with SGD/lr combination.
