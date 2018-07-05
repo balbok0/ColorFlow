@@ -98,6 +98,23 @@ def get_masks(x_shape, y, n_train):
 
 def prepare_data(dataset_name='colorflow', first_time=True):
     # type: (str, bool) -> Tuple[Tuple[Array_Type, Array_Type], Tuple[Array_Type, Array_Type]]
+    """
+    Prepares a dataset of a choice, and returns it in form of pair of tuples, containg training and validation datasets.
+
+    :param dataset_name: Name of the dataset, valid arguments are:
+            - cifar10   - 'cifar' or 'cifar10'
+            - mnist     - 'mnist'
+            - colorflow - 'colorflow', 'this', 'project'
+            - testing   - 'testing' - a smaller colorflow dataset, for debug purposes.
+    :param first_time: Whether a validation dataset should be returned too, or not.
+                        If called for the first time, should be returned. If not, can be avoided for better performence.
+    :return: (x_train, y_train), (x_val, y_val),
+                each being of type np.ndarray, or HDF5Matrix, depending on memory space.
+                x_train - is a input to nn, on which neural network can be trained.
+                y_train - are actual results, which compared to output of nn, allow it to learn information about data.
+                x_val   - is a input to nn, on which nn can be checked how well it performs.
+                y_val   - are actual results, agaist which nn can be checked how well it performs.
+    """
 
     name = dataset_name.lower()
 
@@ -164,8 +181,8 @@ def prepare_data(dataset_name='colorflow', first_time=True):
 
                 y_train = to_categorical(hf['train/y'][indexes_y], len(np.unique(hf['train/y'])))
                 if first_time:
-                    x_val = hf['val/x'][()][:500] + hf['val/x'][()][150500:151000]
-                    y_val = to_categorical(hf['val/y'][:500] + hf['val/y'][150500:151000], len(np.unique(hf['val/y'])))
+                    x_val = hf['val/x'][()]
+                    y_val = to_categorical(hf['val/y'], len(np.unique(hf['val/y'])))[()]
 
         else:  # data too big for memory.
             x_sing_shape = list(hf['train/x'][0].shape)
@@ -343,19 +360,19 @@ def remove_layer(model, index):
     weight_number_before = 0
     for l in model_copy.layers[:index]:
         weight_number_before += len(l.get_weights())
-    weight_number_after = weight_number_before + len(model_copy.layers[index].get_weights())
+    layer_weight_width = len(model_copy.layers[index].get_weights())
+    weight_number_after = weight_number_before + layer_weight_width
 
     if isinstance(layer, MaxPool2D):
         # MaxPool changes shape of the output, thus weights will not have the same shape.
-        new_weights = model.get_weights()[:weight_number_before]
+        new_weights = model_copy.get_weights()[:weight_number_before]
         _, first_dense = find_first_dense(result)
-        new_weights += result.get_weights()[weight_number_before:first_dense + 2]
-        new_weights += model.get_weights()[first_dense + 2:]
-
+        new_weights += result.get_weights()[weight_number_before:first_dense + 1]
+        new_weights += model_copy.get_weights()[first_dense + 1:]
     else:
-        new_weights = model.get_weights()[:weight_number_before]
-        new_weights += result.get_weights()[weight_number_before:weight_number_after]
-        new_weights += model.get_weights()[weight_number_before + len(model_copy.layers[index].get_weights()):]
+        new_weights = model_copy.get_weights()[:weight_number_before]
+        new_weights += result.get_weights()[weight_number_before:weight_number_after - (layer_weight_width / 2)]
+        new_weights += model_copy.get_weights()[weight_number_after + (layer_weight_width / 2):]
 
     result.set_weights(new_weights)
     return result
@@ -364,8 +381,11 @@ def remove_layer(model, index):
 def __clone_layer(layer):
     # type: (Layer) -> Layer
     """
+    Clones a layer, with the exact same configuration as a given one.
+        It removes variables not mentioned in configuration. In example:
+        input shape, which is given due to adding layer to model.
 
-    :param layer:
-    :return:
+    :param layer: Layer to be cloned.
+    :return: An exact copy of a given layer, only based on configuration (no additional information is used).
     """
     return type(layer).from_config(layer.get_config())
