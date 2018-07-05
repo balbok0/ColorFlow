@@ -36,7 +36,6 @@ def multi_roc_score(y_true, y_score):
     gen_tpr = {}
     gen_roc_auc = {}
     for i in range(n_classes):
-        print(y_score)
         gen_fpr[i], gen_tpr[i], _ = roc_curve(y_true[:, i], y_score[:, i])
         gen_roc_auc[i] = auc(gen_fpr[i], gen_tpr[i])
 
@@ -227,10 +226,13 @@ def assert_model_arch_match(model, arch):
             arch_idx -= 1
         else:
             if not arch[arch_idx] in layer_to_arch(l):
-                print(arch)
-                print(arch_idx)
-                print(model.layers)
-                print(l.get_config())
+                from local_vars import debug
+
+                if debug:
+                    print(arch)
+                    print(arch_idx)
+                    print(model.layers)
+                    print(l.get_config())
                 return False
         arch_idx += 1
     return True
@@ -238,6 +240,14 @@ def assert_model_arch_match(model, arch):
 
 def find_first_dense(model):
     # type: (Model) -> (int, int)
+    """
+    Finds an index of first dense layer in a given model.
+
+    :param model: A model in which index of the first dense layer is to be found.
+    :return: Tuple containing two ints:
+                    (index of first dense layer in layer count, index of first dense layer in weights count).
+                    Returns (None, None) if no dense layer exisits in the model.
+    """
     layer_idx = 0
     weight_idx = 0
     for l in model.layers:
@@ -245,6 +255,8 @@ def find_first_dense(model):
             break
         layer_idx += 1
         weight_idx += len(l.get_weights())
+    else:
+        return None, None
     return layer_idx, weight_idx
 
 
@@ -279,10 +291,11 @@ def insert_layer(model, layer, index):
 
     if isinstance(layer, MaxPool2D):
         # MaxPool changes shape of the output, thus weights will not have the same shape.
-        new_weights = model.get_weights()[:weight_number_before]
+        new_weights = model_copy.get_weights()[:weight_number_before]
+
         _, first_dense = find_first_dense(result)
-        new_weights += result.get_weights()[weight_number_before:first_dense + 2]
-        new_weights += model.get_weights()[first_dense:]
+        new_weights += result.get_weights()[weight_number_before:first_dense + 1]  # New weights, shape changed.
+        new_weights += model_copy.get_weights()[first_dense + 1:]  # Back to old shape, since Dense resets it.
 
     else:
         new_weights = model.get_weights()[:weight_number_before]
@@ -290,11 +303,11 @@ def insert_layer(model, layer, index):
                 (index < len(model_copy.layers) - 1 and isinstance(model_copy.layers[index], MaxPool2D) and
                     isinstance(model_copy.layers[index+1], Flatten)):
             _, first_dense = find_first_dense(result)
-            new_weights += result.get_weights()[weight_number_before:first_dense + 2]
-            new_weights += model.get_weights()[first_dense:]
+            new_weights += result.get_weights()[weight_number_before:first_dense + 1]  # New weights, shape changed.
+            new_weights += model_copy.get_weights()[first_dense - 1:] # Back to old shape, since Dense resets it.
         else:
             new_weights += result.get_weights()[weight_number_before:weight_number_after]
-            new_weights += model.get_weights()[weight_number_before + len(model_copy.layers[index].get_weights()):]
+            new_weights += model_copy.get_weights()[weight_number_before + len(model_copy.layers[index].get_weights()):]
     result.set_weights(new_weights)
     return result
 
@@ -350,4 +363,9 @@ def remove_layer(model, index):
 
 def __clone_layer(layer):
     # type: (Layer) -> Layer
+    """
+
+    :param layer:
+    :return:
+    """
     return type(layer).from_config(layer.get_config())

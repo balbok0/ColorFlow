@@ -8,6 +8,7 @@ from keras.models import Sequential, clone_model, Model
 from typing import List, Dict, Union
 
 import helpers
+from local_vars import debug
 
 
 class Network:
@@ -39,7 +40,8 @@ class Network:
             if hasattr(i, "__getitem__") and not isinstance(i, str):
                 max_prev = False
                 if dense_started:
-                    print(architecture)
+                    if debug:
+                        print(architecture)
                     raise TypeError(
                         'Architecture is not correctly formatted.\n'
                         'All Convolution layers should appear before Dense/Dropout layers.')
@@ -55,7 +57,8 @@ class Network:
 
             elif isinstance(i, str) and i.lower() in ['max', 'maxout', 'maxpool']:
                 if dense_started:
-                    print(architecture)
+                    if debug:
+                        print(architecture)
                     raise TypeError(
                         'Architecture is not correctly formatted.\n'
                         'All MaxPool layers should appear before Dense/Dropout layers.\n'

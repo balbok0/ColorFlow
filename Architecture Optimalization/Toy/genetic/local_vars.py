@@ -18,3 +18,6 @@ avg_img = img + 'avg_img/'
 avg_img_npy = avg_img + 'npy/'
 avg_img_single = avg_img + 'single/'
 avg_img_diff = avg_img + 'differences/'
+
+# Development variables
+debug = True
