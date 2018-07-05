@@ -117,13 +117,14 @@ class Network:
             self.model = Sequential()  # type: Sequential
             self.__create_model()
         else:
-            assert helpers.assert_model_arch_match(copy_model, architecture)
+            assert helpers.assert_model_arch_match(copy_model, self.arch)
             self.model = clone_model(copy_model)
             self.model.set_weights(copy_model.get_weights())
             if self.act != activation:
                 for l in self.model.layers[1:-1]:  # type: Layer
                     if not isinstance(l, (Activation, MaxPool2D, Flatten, Dropout)):
                         l.activation = helpers.activations_function_calls[activation]
+            self.model.compile(optimizer=self.opt, loss='categorical_crossentropy', metrics=['accuracy'])
 
     @staticmethod
     def __optimizer(opt_name, lr=None):

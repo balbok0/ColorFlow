@@ -42,7 +42,7 @@ class __Mutator(object):
 
     def get_best_architecture(
             self, population_size=10, generations=20, saving_dir=None,
-            epochs=1, batch_size=100, shuffle='batch', verbose=0, dataset='colorflow'
+            epochs=2, batch_size=100, shuffle='batch', verbose=0, dataset='colorflow'
     ):
         # type: (__Mutator, int, int, str, int, int, str, int, str) -> str
         Network.prepare_data(dataset)

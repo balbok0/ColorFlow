@@ -36,6 +36,7 @@ def multi_roc_score(y_true, y_score):
     gen_tpr = {}
     gen_roc_auc = {}
     for i in range(n_classes):
+        print(y_score)
         gen_fpr[i], gen_tpr[i], _ = roc_curve(y_true[:, i], y_score[:, i])
         gen_roc_auc[i] = auc(gen_fpr[i], gen_tpr[i])
 
@@ -117,8 +118,20 @@ def prepare_data(dataset_name='colorflow', first_time=True):
         from keras.utils.np_utils import to_categorical
 
         (x_train, y_train), (x_val, y_val) = mnist.load_data()
+        x_train = np.reshape(x_train, list(np.array(x_train).shape) + [1])
+        x_val = np.reshape(x_val, list(np.array(x_val).shape) + [1])
         y_train = to_categorical(y_train)
         y_val = to_categorical(y_val)
+
+    elif name == 'testing':
+        from keras.datasets import cifar10
+        from keras.utils.np_utils import to_categorical
+
+        (x_train, y_train), (x_val, y_val) = cifar10.load_data()
+        y_train = to_categorical(y_train[:2500])
+        y_val = to_categorical(y_val[:2500])
+        x_train = x_train[:2500, ...]
+        x_val = x_val[:2500, ...]
 
     elif name in ['project', 'this', 'colorflow']:
         from get_file_names import get_ready_path
@@ -210,10 +223,14 @@ def assert_model_arch_match(model, arch):
     # type: (Model, List) -> bool
     arch_idx = 0
     for l in model.layers[1:-1]:  # type: Layer
-        if isinstance(l, (Activation,Flatten)):
+        if isinstance(l, (Activation, Flatten)):
             arch_idx -= 1
         else:
             if not arch[arch_idx] in layer_to_arch(l):
+                print(arch)
+                print(arch_idx)
+                print(model.layers)
+                print(l.get_config())
                 return False
         arch_idx += 1
     return True
@@ -223,7 +240,7 @@ def find_first_dense(model):
     # type: (Model) -> (int, int)
     layer_idx = 0
     weight_idx = 0
-    for l in model.layers():
+    for l in model.layers:
         if isinstance(l, Dense):
             break
         layer_idx += 1
@@ -245,8 +262,6 @@ def insert_layer(model, layer, index):
     model_copy = keras.models.clone_model(model)
     model_copy.set_weights(model.get_weights())
 
-    model_copy.summary()
-
     result = Sequential()
 
     # Such a deep copy is needed, so that input_shape is not specified, and layers are not shared.
@@ -265,19 +280,21 @@ def insert_layer(model, layer, index):
     if isinstance(layer, MaxPool2D):
         # MaxPool changes shape of the output, thus weights will not have the same shape.
         new_weights = model.get_weights()[:weight_number_before]
-        new_weights += result.get_weights()[weight_number_before:]
+        _, first_dense = find_first_dense(result)
+        new_weights += result.get_weights()[weight_number_before:first_dense + 2]
+        new_weights += model.get_weights()[first_dense:]
 
     else:
         new_weights = model.get_weights()[:weight_number_before]
         if (index < len(model_copy.layers) and isinstance(model_copy.layers[index], Flatten)) or \
                 (index < len(model_copy.layers) - 1 and isinstance(model_copy.layers[index], MaxPool2D) and
                     isinstance(model_copy.layers[index+1], Flatten)):
-            new_weights += result.get_weights()[weight_number_before:]
+            _, first_dense = find_first_dense(result)
+            new_weights += result.get_weights()[weight_number_before:first_dense + 2]
+            new_weights += model.get_weights()[first_dense:]
         else:
             new_weights += result.get_weights()[weight_number_before:weight_number_after]
             new_weights += model.get_weights()[weight_number_before + len(model_copy.layers[index].get_weights()):]
-
-    result.summary()
     result.set_weights(new_weights)
     return result
 
@@ -318,7 +335,9 @@ def remove_layer(model, index):
     if isinstance(layer, MaxPool2D):
         # MaxPool changes shape of the output, thus weights will not have the same shape.
         new_weights = model.get_weights()[:weight_number_before]
-        new_weights += result.get_weights()[weight_number_before:]
+        _, first_dense = find_first_dense(result)
+        new_weights += result.get_weights()[weight_number_before:first_dense + 2]
+        new_weights += model.get_weights()[first_dense + 2:]
 
     else:
         new_weights = model.get_weights()[:weight_number_before]
