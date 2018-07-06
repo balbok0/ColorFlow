@@ -34,4 +34,26 @@ TODO: Check the size of the training dataset: https://github.com/36000/cnn_color
     - 05/07 - bth fn's  - Fixed minor bugs, which resulted in incorrect shape.
 02-05/07: Make it Maxout safe, when adding new layer. AKA implement limit so that maxpool cannot be added if previous/next layer is maxpool:
     - Fixed during problem above.
-TODO: Bug. Sometimes training pops out NaNs. Understand why, fix. It's not optimizer, unless there's something wrong with SGD/lr combination.
+04-06/07: Bug. Sometimes training pops out NaNs. Understand why, fix. It's not optimizer, unless there's something wrong with SGD/lr combination.
+    Nets:
+        1:
+            architecture: [((3, 3), 8), 128, 64]
+            optimizer   : Adam
+            activation  : relu
+            callbacks   : EarlyStopping/default
+        2:
+            architecture: [((7, 7), 16), ((5, 5), 8), 'max', 32, 32, 'drop0.30']
+            optimizer   : Adam
+            activation  : relu
+            callbacks   : EarlyStopping/default
+        3:
+            architecture: [((5, 5), 8), 'max', ((5, 5), 8), 'max', 64, 'drop0.30']
+            optimizer   : Adam
+            activation  : relu
+            callbacks   : EarlyStopping/default
+    Solved.
+    Note for future:
+        Basically using relu with cross_entropy doesn't work, since 0 is not in domain of cross_entropy, but in range of relu.
+        Thus, even though the last activation was tanh, the problem was 0, appearing sometimes in the range of nn(since 0 -> 0 in tanh).
+        Use SIGMOID whenever possible as last activation of nn, whenever possible.
+TODO: Investigate why dropout at the end of arch is legal. It's shouldn't be.

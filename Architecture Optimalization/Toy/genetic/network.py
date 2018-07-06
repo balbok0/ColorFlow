@@ -171,7 +171,7 @@ class Network:
         self.__score = 0.  # Resets score, so it will not collide w/ scoring it again (but w/ different weights).
         if Network.__x_train is None or Network.__x_val is None or Network.__y_train is None or Network.__y_val is None:
             Network.prepare_data()
-
+        print(self.get_config())
         self.model.fit(
             x=Network.__x_train, y=Network.__y_train, epochs=epochs, batch_size=batch_size, shuffle=shuffle,
             callbacks=self.callbacks, validation_data=(Network.__x_val, Network.__y_val), verbose=verbose
@@ -252,7 +252,7 @@ class Network:
 
         if len(self.model.output_shape) > 2:
             self.model.add(Flatten())
-        self.model.add(Dense(units=len(Network.__y_train[0]), activation='tanh'))
+        self.model.add(Dense(units=len(Network.__y_train[0]), activation='sigmoid'))
         self.model.compile(optimizer=self.opt, loss='categorical_crossentropy', metrics=['accuracy'])
 
     def add_layer(self, params):
@@ -355,3 +355,20 @@ class Network:
             activation=self.act,
             callbacks=Network.default_callbacks + [LearningRateScheduler(schedule)]
         )
+
+    def get_config(self):
+        # type: () -> Dict[str, ]
+        opt_name = str(self.opt.__class__)
+        opt_name = opt_name[opt_name.index(".") + 1:]
+        opt_name = opt_name[:opt_name.index("\'")]
+        opt_name = opt_name[opt_name.index(".") + 1:]
+        return {
+            'architecture': self.arch,
+            'optimizer': '{opt} with learning rate: {lr}'.format(
+                opt=opt_name,
+                lr="{:.2g}".format(self.opt.get_config()['lr'])
+            ),
+            'activation': self.act,
+            'score': self.__score,
+            'callbacks': self.callbacks
+        }

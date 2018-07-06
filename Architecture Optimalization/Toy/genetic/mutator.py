@@ -3,6 +3,7 @@ import os
 import random
 
 import numpy as np
+from keras import Model
 from typing import List, Dict
 
 import log_save
@@ -44,7 +45,7 @@ class __Mutator(object):
             self, population_size=10, generations=20, saving_dir=None,
             epochs=2, batch_size=100, shuffle='batch', verbose=0, dataset='colorflow'
     ):
-        # type: (__Mutator, int, int, str, int, int, str, int, str) -> str
+        # type: (__Mutator, int, int, str, int, int, str, int, str) -> Model
         Network.prepare_data(dataset)
 
         if saving_dir is None:
@@ -124,11 +125,21 @@ class __Mutator(object):
         best_score = best[1]
         best_net = best[0]
 
-        return ('Best network, with architecture: {arch}, optimizer {opt}, and activation function {act}.'
-                'It\'s score is {score}.'.format(
-                    arch=best_net.arch, opt=best_net.opt, act=best_net.act, score=best_score
-                    )
-                )
+        config = best_net.get_config()
+
+        log_save.print_message(
+            'Best network, with architecture: '
+            '{arch}, optimizer {opt}, callbacks {call}, and activation function {act}. '
+            'It\'s score is {score}.'.format(
+                arch=config['architecture'],
+                opt=config['optimizer'],
+                call=config['callbacks'],
+                act=config['activation'],
+                score=config['score']
+            )
+        )
+
+        return best_net.model
 
     def __create_random_model(self):
         # type: (__Mutator) -> Network
