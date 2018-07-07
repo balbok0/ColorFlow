@@ -171,7 +171,8 @@ class Network:
         self.__score = 0.  # Resets score, so it will not collide w/ scoring it again (but w/ different weights).
         if Network.__x_train is None or Network.__x_val is None or Network.__y_train is None or Network.__y_val is None:
             Network.prepare_data()
-        print(self.get_config())
+        if debug:
+            print(self.get_config())
         self.model.fit(
             x=Network.__x_train, y=Network.__y_train, epochs=epochs, batch_size=batch_size, shuffle=shuffle,
             callbacks=self.callbacks, validation_data=(Network.__x_val, Network.__y_val), verbose=verbose
