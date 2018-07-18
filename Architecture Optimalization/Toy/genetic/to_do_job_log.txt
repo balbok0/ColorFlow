@@ -60,6 +60,7 @@ TODO: Check the size of the training dataset: https://github.com/36000/cnn_color
             activation  : relu
             callbacks   : EarlyStopping/default
     Solved.
+
     Note for future:
         Basically using relu with cross_entropy doesn't work, since 0 is not in domain of cross_entropy, but in range of relu.
         Thus, even though the last activation was tanh, the problem was 0, appearing sometimes in the range of nn(since 0 -> 0 in tanh).
@@ -73,4 +74,20 @@ TODO: Bug. Nan in loss. Now in middle of the epoch. Maybe something with diverge
             activation  : relu
             callbacks   : EarlyStopping/default
 
-TODO: Investigate why dropout at the end of arch is legal. It's shouldn't be.
+17/07: Investigate why dropout at the end of arch is legal. It's shouldn't be.
+    - Done, added 'or j == len(architecture) - 1' in __init__ of network. Also added a test, in the test_network.
+
+17/07: Make probability distributions for different choices in __mutate.
+    - Done. Used numpy.random instead of random.
+
+TODO: Make different add-ons (such as combination of conv-conv-conv-max)
+    - Basically make a function which uses a insert_layer helper method, on a random index
+        (ideally with a req. that's it's after maxout).
+    - Good idea to create a file called helpers_mutate.
+
+TODO: Limit depth/number of weights.
+
+TODO: To prevent overfitting. Save weights before training, then compare scores after fitting. If it's worse, keep the weights.
+    - Should it be done in score or in fit?
+
+TODO: Split helper methods based on what they are helping with. Maybe even make a backend folder.

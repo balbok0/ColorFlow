@@ -1,6 +1,5 @@
-import random
-
 import numpy as np
+import numpy.random as random
 from keras import optimizers
 from keras.callbacks import EarlyStopping, LearningRateScheduler, Callback
 from keras.layers import Activation, Dense, Flatten, Dropout, Conv2D, MaxPool2D, Layer
@@ -70,7 +69,7 @@ class Network:
 
             elif isinstance(i, str) and i.lower().startswith(('drop', 'dropout')):
                 dense_started = True
-                if drop_prev:
+                if drop_prev or j == len(architecture) - 1:
                     idx_to_remove = [j] + idx_to_remove
                 else:
                     try:
