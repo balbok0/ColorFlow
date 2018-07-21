@@ -28,8 +28,28 @@ activations_function_calls = {
 }
 
 
+def get_number_of_weights(model):
+    # type: (Model) -> int
+    """
+    :param model: A model which number of weights is to be determined.
+    :return: int - Number of weights in a given model.
+    """
+    num_weights = 0
+    for l in model.get_weights():
+        _l = np.ravel(l)
+        num_weights += len(_l)
+    return num_weights
+
+
 def multi_roc_score(y_true, y_score):
     # type: (np.ndarray, np.ndarray) -> float
+    """
+    Returns area under ROC curve value for a multi-class dataset. It's a 1-D scalar value.
+
+    :param y_true: True classes of a dataset. (In one-hot vector form)
+    :param y_score: Predicted classes for the same dataset. (Also in one-hot vector form)
+    :return: Area under curve, based on interpolated averaged true positive rates and actual false positive rates.
+    """
 
     n_classes = len(y_true[0])
     gen_fpr = {}
@@ -57,9 +77,16 @@ def multi_roc_score(y_true, y_score):
     return auc_score
 
 
-# Helper method for prepare_data.
-# Approximates memory cost of hdf5 dataset.
 def get_memory_size(hdf5_data_set, n_samples=None):
+    # type: (HDF5Matrix, int) -> int
+    """
+    Approximates memory cost of a given number of images in a hdf5 dataset.
+
+    :param hdf5_data_set: Dataset, from which images are used.
+    :param n_samples: Number of images in a given dataset which memory cost is to be approximated.
+                        If None, number of images equals size of hdf5_data_set.
+    :return: Approximated size of whole array in RAM memory.
+    """
     # type: (np.ndarray, int) -> int
     if n_samples is None:
         n_samples = len(hdf5_data_set)
@@ -69,6 +96,14 @@ def get_memory_size(hdf5_data_set, n_samples=None):
 
 def get_masks(x_shape, y, n_train):
     # type: (Tuple[int], np.ndarray, int) -> (np.ndarray, np.ndarray)
+    """
+    Creates masks, which choose n_train random images after applying a mask.
+
+    :param x_shape: Shape of x dataset (images).
+    :param y: True classes corresponding to images of dataset, which shape is given in x_shape.
+    :param n_train: Size which dataset should have after applying a mask.
+    :return: Two masks, first one for x part of dataset (images), another for y part of dataset (classes)
+    """
 
     all_indexes = defaultdict(list)  # type: Dict[int, List[int]]
     for i in range(len(y)):
@@ -201,6 +236,13 @@ def prepare_data(dataset_name='colorflow', first_time=True):
 
 def arch_to_layer(layer, activation):
     # type: (str, str) -> Layer
+    """
+    Given an architecture layer description, and an activation function, returns a new layer based on them.
+
+    :param layer: Layer description. Specific to THIS Network implementation.
+    :param activation: Activation function of a layer to be created.
+    :return: A new layer based on given description and activation.
+    """
     if hasattr(layer, '__getitem__') and not isinstance(layer, str):
         return Conv2D(filters=layer[1], kernel_size=layer[0], activation=activation, kernel_initializer='he_uniform',
                       padding='same')
@@ -222,6 +264,12 @@ def arch_to_layer(layer, activation):
 
 
 def layer_to_arch(layer):
+    """
+    Given a keras layer returns an architecture layer decription. Specific to THIS Network implementation.
+
+    :param layer: Keras layer, which is to be translated to architecture layer description.
+    :return: An architecture layer description based on given layer.
+    """
     # type: (Layer) -> list
     if isinstance(layer, Conv2D):
         return [(layer.get_config()['kernel_size'], layer.get_config()['filters'])]
@@ -237,6 +285,13 @@ def layer_to_arch(layer):
 
 def assert_model_arch_match(model, arch):
     # type: (Model, List) -> bool
+    """
+    Asserts that given architecture and given model match. Specific for THIS Network implementation!
+
+    :param model: A keras neural network model, which architecture is to be compared.
+    :param arch: A list containing descriptions of layers to be comapered.
+    :return: True, if both arguments match, False otherwise.
+    """
     arch_idx = 0
     for l in model.layers[1:-1]:  # type: Layer
         if isinstance(l, (Activation, Flatten)):

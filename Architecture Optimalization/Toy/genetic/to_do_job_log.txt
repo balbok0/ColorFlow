@@ -86,6 +86,7 @@ TODO: Make different add-ons (such as combination of conv-conv-conv-max)
     - Good idea to create a file called helpers_mutate.
 
 TODO: Limit depth/number of weights.
+    - 21/07 - Made a function to determine # of weights in the model.
 
 TODO: To prevent overfitting. Save weights before training, then compare scores after fitting. If it's worse, keep the weights.
     - Should it be done in score or in fit?
