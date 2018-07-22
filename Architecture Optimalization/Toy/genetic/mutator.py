@@ -1,8 +1,8 @@
 import collections
 import os
+import random
 
 import numpy as np
-import numpy.random as random
 from keras import Model
 from typing import List, Dict
 
@@ -188,7 +188,7 @@ class __Mutator(object):
         possible_changes = [Network.add_layer, Network.remove_layer, Network.change_opt, Network.change_activation,
                             Network.change_lr_schedule]
         probabilities = [3, 2, 1, 1, 1]
-        probabilities = np.divide(probabilities, np.sum(probabilities))  # Normalization, for probabilities.
+        probabilities = np.divide(probabilities, 1. * np.sum(probabilities))  # Normalization, for probabilities.
 
         # Number of changes is capped, and distributed exponentially.
         n_of_changes = int(1 + np.random.exponential())
@@ -196,8 +196,7 @@ class __Mutator(object):
             n_of_changes = change_number_cap
 
         for i in range(n_of_changes):
-
-            base_net = random.choice(possible_changes, p=probabilities)(base_net, self.params)
+            base_net = np.random.choice(possible_changes, p=probabilities)(base_net, self.params)
 
         return base_net
 

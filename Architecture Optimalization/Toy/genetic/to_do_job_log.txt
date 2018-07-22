@@ -87,8 +87,11 @@ TODO: Make different add-ons (such as combination of conv-conv-conv-max)
 
 TODO: Limit depth/number of weights.
     - 21/07 - Made a function to determine # of weights in the model.
+    - 22/07 - Implemented in add_layer method. However, it doesn't have strict weight # cap. (Only a loose one, before adding a new layer)
 
 TODO: To prevent overfitting. Save weights before training, then compare scores after fitting. If it's worse, keep the weights.
     - Should it be done in score or in fit?
 
 TODO: Split helper methods based on what they are helping with. Maybe even make a backend folder.
+
+TODO: Split local variables to 2 files. One for files, one for constants.

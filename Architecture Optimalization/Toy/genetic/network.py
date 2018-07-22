@@ -1,5 +1,6 @@
+import random
+
 import numpy as np
-import numpy.random as random
 from keras import optimizers
 from keras.callbacks import EarlyStopping, LearningRateScheduler, Callback
 from keras.layers import Activation, Dense, Flatten, Dropout, Conv2D, MaxPool2D, Layer
@@ -7,6 +8,7 @@ from keras.models import Sequential, clone_model, Model
 from typing import List, Dict, Union
 
 import helpers
+import net_mutator_vars as const
 from local_vars import debug
 
 
@@ -115,6 +117,7 @@ class Network:
         else:
             self.opt = self.__optimizer(opt, lr=lr)  # type: optimizers.Optimizer
         self.__score = 0.  # type: float
+        self.__prev_score = 0.  # type: float
         if copy_model is None:
             self.model = Sequential()  # type: Sequential
             self.__create_model()
@@ -167,6 +170,7 @@ class Network:
         raise AttributeError('Invalid name of optimizer given.')
 
     def fit(self, epochs=20, batch_size=100, shuffle='batch', verbose=0):
+        self.__prev_score = self.__score
         self.__score = 0.  # Resets score, so it will not collide w/ scoring it again (but w/ different weights).
         if Network.__x_train is None or Network.__x_val is None or Network.__y_train is None or Network.__y_val is None:
             Network.prepare_data()
@@ -260,6 +264,9 @@ class Network:
         layer_idx = random.randint(0, len(self.arch))
 
         possible_layers = {}
+
+        if helpers.get_number_of_weights(self.model) > const.max_n_weights or len(self.arch) + 1 > const.max_depth:
+            self.remove_layer(params)
 
         if layer_idx == 0:
             possible_layers['conv'] = random.choice(params['kernel_size']), random.choice(params['conv_filters'])
