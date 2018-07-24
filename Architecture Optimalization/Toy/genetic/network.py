@@ -18,6 +18,15 @@ class Network:
 
     @staticmethod
     def prepare_data(dataset_name='colorflow'):
+        """
+        Prepares data with a given name, loads it to memory. and points variables to it. Possible arguments are:
+            - colorflow
+            - cifar
+            - mnist
+            - testing.
+
+        :param dataset_name: Name of dataset to be used.
+        """
         if Network.__x_val is None or Network.__y_val is None:
             (Network.__x_train, Network.__y_train), (Network.__x_val, Network.__y_val) = \
                 helpers.prepare_data(dataset_name=dataset_name)
@@ -27,6 +36,16 @@ class Network:
 
     def __init__(self, architecture, copy_model=None, opt='adam', lr=None, activation='relu', callbacks=None):
         # type: (Network, List, Model, Union[str, optimizers.Optimizer], float, str, List[Callback]) -> None
+        """
+        Creates a new instance of Network.
+
+        :param architecture: A list description of the network.
+        :param copy_model: A keras Model to make a copy of.
+        :param opt: Optimizer used for given network/
+        :param lr: Learning rate to be used with an optimizer.
+        :param activation: Activation function to be used in a network.
+        :param callbacks: Callbacks to be used while training a network.
+        """
         assert hasattr(architecture, "__getitem__")
         # Check that architecture vector is first tuples (for convolutions)/MaxOuts,
         # and then integers for the dense layers or 'drop0.2' for a dropout layer
@@ -134,6 +153,20 @@ class Network:
     @staticmethod
     def __optimizer(opt_name, lr=None):
         # type: (str, float) -> optimizers.Optimizer
+        """
+        Given a name and learning rate returns a keras optimizer based on it.
+
+        :param opt_name: Name of optimizer to use.
+                Legal arguments are:\n
+                #. adam
+                #. nadam
+                #. rmsprop
+                #. adamax
+                #. adagrad
+                #. adadelta
+        :param lr: Learning rate of an optimizer.
+        :return: A new optimizer based on given name and learning rate.
+        """
 
         opt_name = opt_name.lower()
         if lr is None:
@@ -170,6 +203,11 @@ class Network:
         raise AttributeError('Invalid name of optimizer given.')
 
     def fit(self, epochs=20, batch_size=100, shuffle='batch', verbose=0):
+        # type: (Network, int, int, str, int) -> None
+        """
+        Trains a network on a training set.
+        For paramaters descriptions look at documentation for keras.models.Model.fit function.
+        """
         self.__prev_score = self.__score
         self.__prev_weights = copy.deepcopy(self.model.get_weights())
         self.__score = 0.  # Resets score, so it will not collide w/ scoring it again (but w/ different weights).
@@ -184,6 +222,12 @@ class Network:
 
     def score(self, f=None):
         # type: (Network, function) -> float
+        """
+        Scores a network on a given function/metric.
+
+        :param f: Function to score a function on. If not given a Area Under ROC Curve is used as a metric.
+        :return: Returns a score of this network on given function/metric.
+        """
         import inspect
 
         if f is None:
@@ -206,9 +250,19 @@ class Network:
 
     def save(self, file_path, overwrite=True):
         # type: (Network, str, bool) -> None
+        """
+        Given path, saves a network.
+
+        :param file_path: A path to which network should be saved.
+        :param overwrite: If such file already exists, whether it should be overwritten or not.
+        """
         self.model.save(filepath=file_path, overwrite=overwrite)
 
     def __create_model(self):
+        """
+        With already set architecture, translates it into actual keras model.
+        Also compiles it, so that an actual model is ready to use.
+        """
         if self.model_created:
             raise Exception('Cannot recreate a new model in the same instance.')
 
@@ -268,6 +322,14 @@ class Network:
 
     def get_config(self):
         # type: () -> Dict[str, ]
+        """
+        :return: A dictionary, which specifies configuration of this network. It contains:\n
+            #. architecture - a list of layers in a network.
+            #. optimizer - on which this network was trained.
+            #. activation - activation function on all of layers of this network.
+            #. score - score of this network, if function score was called beforehand. 0 otherwise.
+            #. callbacks - list of callbacks used while training this network.
+        """
         opt_name = str(self.opt.__class__)
         opt_name = opt_name[opt_name.index(".") + 1:]
         opt_name = opt_name[:opt_name.index("\'")]

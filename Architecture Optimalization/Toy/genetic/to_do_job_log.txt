@@ -97,7 +97,9 @@ TODO: Limit depth/number of weights.
         3. Modified score to determine which weights to keep based on score.
 
 TODO: Split helper methods based on what they are helping with. Maybe even make a backend folder.
+    - 22/07 - Methods to mutate have different .py file.
 
-TODO: Split local variables to 2 files. One for files, one for constants.
+24/07: Split local variables to 2 files. One for files, one for constants.
+    - Done. Put in a subdir.
 
 TODO: Make comments for all the functions/methods
