@@ -6,8 +6,10 @@ import numpy as np
 from keras import Model
 from typing import List, Dict
 
+import helpers_mutate
 import log_save
 from network import Network
+from program_variables import program_params as const
 
 '''
 Actual Mutator class is in the bottom of this file!
@@ -146,6 +148,8 @@ class __Mutator(object):
         architecture = [(random.choice(self.params['kernel_size']),
                          random.choice(self.params['conv_filters']))]
 
+        n_layers = 1  # since there's always at least one dense layer.
+
         # Two variables for probability of:
         #   r_min - adding any new layer,
         #   r_mid - distinguishing between two types of layers for each part of arch.
@@ -154,7 +158,7 @@ class __Mutator(object):
 
         # Convolution/Maxout part of architecture
         r = random.random()
-        while r > r_min:
+        while r > r_min and n_layers < const.max_depth:
             r = random.random()
             if r > r_mid:
                 architecture.append('max')
@@ -166,7 +170,7 @@ class __Mutator(object):
         # Dense/Dropout part of architecture
         architecture.append(random.choice(self.params.get('dense_size')))
         r = random.random()
-        while r > r_min:
+        while r > r_min and n_layers < const.max_depth:
             r = random.random()
             if r > r_mid:
                 architecture.append('drop%.2f' % random.choice(self.params.get('dropout')))
@@ -185,8 +189,9 @@ class __Mutator(object):
         if self.params == {}:
             raise Exception('Mutator not initialized.')
 
-        possible_changes = [Network.add_layer, Network.remove_layer, Network.change_opt, Network.change_activation,
-                            Network.change_lr_schedule]
+        possible_changes = [helpers_mutate.add_layer, helpers_mutate.remove_layer, helpers_mutate.change_opt,
+                            helpers_mutate.change_activation, helpers_mutate.change_lr_schedule]
+
         probabilities = [3, 2, 1, 1, 1]
         probabilities = np.divide(probabilities, 1. * np.sum(probabilities))  # Normalization, for probabilities.
 

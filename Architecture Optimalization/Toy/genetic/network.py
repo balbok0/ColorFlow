@@ -1,15 +1,14 @@
-import random
+import copy
 
 import numpy as np
 from keras import optimizers
-from keras.callbacks import EarlyStopping, LearningRateScheduler, Callback
+from keras.callbacks import EarlyStopping, Callback
 from keras.layers import Activation, Dense, Flatten, Dropout, Conv2D, MaxPool2D, Layer
 from keras.models import Sequential, clone_model, Model
 from typing import List, Dict, Union
 
 import helpers
-import net_mutator_vars as const
-from local_vars import debug
+from program_variables.program_params import debug
 
 
 class Network:
@@ -118,6 +117,7 @@ class Network:
             self.opt = self.__optimizer(opt, lr=lr)  # type: optimizers.Optimizer
         self.__score = 0.  # type: float
         self.__prev_score = 0.  # type: float
+        self.__prev_weights = None  # type: np.ndarray
         if copy_model is None:
             self.model = Sequential()  # type: Sequential
             self.__create_model()
@@ -171,6 +171,7 @@ class Network:
 
     def fit(self, epochs=20, batch_size=100, shuffle='batch', verbose=0):
         self.__prev_score = self.__score
+        self.__prev_weights = copy.deepcopy(self.model.get_weights())
         self.__score = 0.  # Resets score, so it will not collide w/ scoring it again (but w/ different weights).
         if Network.__x_train is None or Network.__x_val is None or Network.__y_train is None or Network.__y_val is None:
             Network.prepare_data()
@@ -194,6 +195,12 @@ class Network:
 
         if self.__score == 0.0:
             self.__score = f(y_true=self.__y_val, y_score=self.model.predict(self.__x_val))
+
+        if self.__score < self.__prev_score:
+            self.__score = self.__prev_score
+            self.__prev_score = 0.
+            self.model.set_weights(self.__prev_weights)
+            self.__prev_weights = None
 
         return self.__score
 
@@ -258,110 +265,6 @@ class Network:
             self.model.add(Flatten())
         self.model.add(Dense(units=len(Network.__y_train[0]), activation='sigmoid'))
         self.model.compile(optimizer=self.opt, loss='categorical_crossentropy', metrics=['accuracy'])
-
-    def add_layer(self, params):
-        # type: (Network, Dict[str, List]) -> Network
-        layer_idx = random.randint(0, len(self.arch))
-
-        possible_layers = {}
-
-        if helpers.get_number_of_weights(self.model) > const.max_n_weights or len(self.arch) + 1 > const.max_depth:
-            self.remove_layer(params)
-
-        if layer_idx == 0:
-            possible_layers['conv'] = random.choice(params['kernel_size']), random.choice(params['conv_filters'])
-        elif layer_idx == len(self.arch):
-            possible_layers['dense'] = random.choice(params['dense_size'])
-        else:
-            prev_layer = self.arch[layer_idx - 1]
-            next_layer = self.arch[layer_idx]
-            if hasattr(prev_layer, '__getitem__') and \
-                    (not isinstance(prev_layer, str) or (isinstance(prev_layer, str) and prev_layer.startswith('max'))):
-                possible_layers['conv'] = (random.choice(params['kernel_size']), random.choice(params['conv_filters']))
-                if not (isinstance(prev_layer, str) or (isinstance(next_layer, str) and next_layer.startswith('max'))):
-                    possible_layers['max'] = 'max'
-
-            check_if_flat = lambda x: isinstance(x, int) or (isinstance(x, str) and x.startswith('drop'))
-
-            if check_if_flat(next_layer):
-                possible_layers['dense'] = random.choice(params['dense_size'])
-                if isinstance(next_layer, int) and check_if_flat(prev_layer) \
-                        and not (isinstance(prev_layer, str) and prev_layer.startswith('drop')):
-                    possible_layers['drop'] = 'drop' + str(random.choice(params['dropout']))
-
-        layer_name = random.choice(possible_layers.values())
-
-        new_arch = self.arch[:layer_idx] + [layer_name] + self.arch[layer_idx:]
-
-        layer_idx += 1  # difference between self.arch and actual architecture. - First activation layer.
-        if isinstance(layer_name, int) or (isinstance(layer_name, str) and layer_name.startswith('drop')):
-            layer_idx += 1  # difference between self.arch and actual architecture. - Flatten layer.
-
-        return Network(
-            architecture=new_arch,
-            copy_model=helpers.insert_layer(self.model, helpers.arch_to_layer(layer_name, self.act), layer_idx),
-            opt=self.opt,
-            activation=self.act,
-            callbacks=self.callbacks
-        )
-
-    def remove_layer(self, params):
-        # type: (Network, Dict[str, List]) -> Network
-        if len(self.arch) <= 2:
-            return self.add_layer(params)
-        layer_idx = random.randint(1, len(self.arch) - 2)  # so that, Conv is always first, and Dense is always last.
-        layer_name = self.arch[layer_idx]
-        new_arch = self.arch[:layer_idx] + self.arch[layer_idx + 1:]
-
-        layer_idx += 1  # difference between self.arch and actual architecture. - First activation layer.
-        if isinstance(layer_name, int) or (isinstance(layer_name, str) and layer_name.startswith('drop')):
-            layer_idx += 1  # difference between self.arch and actual architecture. - Flatten layer.
-
-        return Network(
-            architecture=new_arch,
-            copy_model=helpers.remove_layer(self.model, layer_idx),
-            opt=self.opt,
-            activation=self.act,
-            callbacks=self.callbacks
-        )
-
-    def change_opt(self, params):
-        # type: (Network, Dict[str, List]) -> Network
-        return Network(
-            architecture=self.arch,
-            copy_model=self.model,
-            opt=random.choice(params['optimizer']),
-            lr=random.choice(params['optimizer_lr']),
-            activation=self.act,
-            callbacks=self.callbacks
-        )
-
-    def change_activation(self, params):
-        # type: (Network, Dict[str, List]) -> Network
-        return Network(
-            architecture=self.arch,
-            copy_model=self.model,
-            opt=self.opt,
-            activation=random.choice(params['activation']),
-            callbacks=self.callbacks
-        )
-
-    def change_lr_schedule(self, params):
-        # type: (Network, Dict[str, List]) -> Network
-        if random.choice(params['learning_decay_type']) == 'linear':
-            def schedule(x):
-                return self.opt.get_config()['lr'] - float(x * random.choice(params['learning_decay_rate']))
-        else:
-            def schedule(x):
-                return self.opt.get_config()['lr'] - float(np.exp(-x * random.choice(params['learning_decay_rate'])))
-
-        return Network(
-            architecture=self.arch,
-            copy_model=self.model,
-            opt=self.opt,
-            activation=self.act,
-            callbacks=Network.default_callbacks + [LearningRateScheduler(schedule)]
-        )
 
     def get_config(self):
         # type: () -> Dict[str, ]

@@ -88,10 +88,16 @@ TODO: Make different add-ons (such as combination of conv-conv-conv-max)
 TODO: Limit depth/number of weights.
     - 21/07 - Made a function to determine # of weights in the model.
     - 22/07 - Implemented in add_layer method. However, it doesn't have strict weight # cap. (Only a loose one, before adding a new layer)
+    - 24/07 - Added a max depth requirement when generating a networks for first time.
 
-TODO: To prevent overfitting. Save weights before training, then compare scores after fitting. If it's worse, keep the weights.
-    - Should it be done in score or in fit?
+23/07: To prevent overfitting. Save weights before training, then compare scores after fitting. If it's worse, keep the weights.
+    - Done:
+        1. Modified __init__ to add previous score and previous weights.
+        2. Modified fit to update these variables.
+        3. Modified score to determine which weights to keep based on score.
 
 TODO: Split helper methods based on what they are helping with. Maybe even make a backend folder.
 
 TODO: Split local variables to 2 files. One for files, one for constants.
+
+TODO: Make comments for all the functions/methods

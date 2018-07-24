@@ -270,7 +270,7 @@ def layer_to_arch(layer):
     :param layer: Keras layer, which is to be translated to architecture layer description.
     :return: An architecture layer description based on given layer.
     """
-    # type: (Layer) -> list
+    # type: Layer -> list
     if isinstance(layer, Conv2D):
         return [(layer.get_config()['kernel_size'], layer.get_config()['filters'])]
     elif isinstance(layer, MaxPool2D):
@@ -298,7 +298,7 @@ def assert_model_arch_match(model, arch):
             arch_idx -= 1
         else:
             if not arch[arch_idx] in layer_to_arch(l):
-                from local_vars import debug
+                from program_variables.program_params import debug
 
                 if debug:
                     print(arch)
@@ -376,7 +376,7 @@ def insert_layer(model, layer, index):
                     isinstance(model_copy.layers[index+1], Flatten)):
             _, first_dense = find_first_dense(result)
             new_weights += result.get_weights()[weight_number_before:first_dense + 1]  # New weights, shape changed.
-            new_weights += model_copy.get_weights()[first_dense - 1:] # Back to old shape, since Dense resets it.
+            new_weights += model_copy.get_weights()[first_dense - 1:]  # Back to old shape, since Dense resets it.
         else:
             new_weights += result.get_weights()[weight_number_before:weight_number_after]
             new_weights += model_copy.get_weights()[weight_number_before + len(model_copy.layers[index].get_weights()):]
