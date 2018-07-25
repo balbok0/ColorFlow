@@ -1,7 +1,12 @@
 # Input, user modifiable
 basic_dir = '/home/balbok/Documents/Research/ColorFlow/Data/'
 
+
 # Output, user modifiable
+models_saving_dir = 'genetic_models/'
+
+log_file_location = ''
+log_file_name = 'log.txt'
 
 
 # Input, DO NOT CHANGE

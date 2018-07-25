@@ -71,7 +71,8 @@ class __Mutator(object):
         Network.prepare_data(dataset)
 
         if saving_dir is None:
-            saving_dir = 'genetic_models/'
+            from program_variables.file_loc_vars import models_saving_dir
+            saving_dir = models_saving_dir
 
         if not saving_dir.endswith('/'):
             saving_dir += '/'
@@ -166,6 +167,7 @@ class __Mutator(object):
         # type: (__Mutator) -> Network
         """
         Creates a random model, based of parameters choices given in this Mutator.
+
         :return: Random Network, with a random architecture, optimizers, etc.
         """
         architecture = [(random.choice(self.params['kernel_size']),
