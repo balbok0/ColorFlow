@@ -21,7 +21,11 @@ class __Mutator(object):
 
     def __init__(self, params=None):
         # type: (__Mutator, Dict[str, List]) -> None
+        """
+        Creates a new instance of Mutator.
 
+        :param params: A dictionary of choices which can modify the network.
+        """
         if params is None:
             params = {
                 'kernel_size': [(3, 3), (5, 5), (7, 7)],
@@ -48,6 +52,22 @@ class __Mutator(object):
             epochs=2, batch_size=100, shuffle='batch', verbose=0, dataset='colorflow'
     ):
         # type: (__Mutator, int, int, str, int, int, str, int, str) -> Model
+        """
+        Main function of Mutator.\n
+        Trains neural networks, and evolves them through generations, in order to find architecture, optimezr, etc.
+        which allow for the best results given a dataset.
+
+        :param population_size: Number of neural networks in one genration.
+        :param generations: Number of generations.
+        :param saving_dir: Directory to which models are saved.
+        :param epochs: Number of epochs each network in each generation is trained.
+        :param batch_size: Look at keras.models.Model.fit function documentation.
+        :param shuffle: Look at keras.models.Model.fit function documentation.
+        :param verbose: Look at keras.models.Model.fit function documentation.
+                            Additionally, it specifies printing properties between generations.
+        :param dataset: Dataset to which neural network should be optimized.
+        :return: Keras Model of neural network, which was the best in last generation, with already trained weights.
+        """
         Network.prepare_data(dataset)
 
         if saving_dir is None:
@@ -140,11 +160,14 @@ class __Mutator(object):
                 score=best_score
             )
         )
-
         return best_net.model
 
     def __create_random_model(self):
         # type: (__Mutator) -> Network
+        """
+        Creates a random model, based of parameters choices given in this Mutator.
+        :return: Random Network, with a random architecture, optimizers, etc.
+        """
         architecture = [(random.choice(self.params['kernel_size']),
                          random.choice(self.params['conv_filters']))]
 
@@ -185,7 +208,13 @@ class __Mutator(object):
 
     def __mutate(self, base_net, change_number_cap=3):
         # type: (Network, int) -> Network
+        """
+        Given a network, returns a new Network, with a random number of mutations (capped at given number).
 
+        :param base_net: A network to which mutations should be based. It's not affected.
+        :param change_number_cap: Maximal number of changes.
+        :return: A new, mutated Network.
+        """
         if self.params == {}:
             raise Exception('Mutator not initialized.')
 

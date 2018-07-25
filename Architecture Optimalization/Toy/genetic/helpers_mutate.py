@@ -11,6 +11,13 @@ from program_variables import program_params as const
 
 def add_layer(base_net, params):
     # type: (Network, Dict[str, List]) -> Network
+    """
+    Creates a copy of given Network, but with added layer, randomly derived from given parameters.
+
+    :param base_net: Network, which copy (with added layer) will be returned.
+    :param params: Parameters, defining possible choices of layers.
+    :return: Copy of given network, with additional layer inserted in a random position.
+    """
     layer_idx = random.randint(0, len(base_net.arch))
 
     possible_layers = {}
@@ -58,6 +65,13 @@ def add_layer(base_net, params):
 
 def remove_layer(base_net, params):
     # type: (Network, Dict[str, List]) -> Network
+    """
+    Creates a copy of given Network, but with removed layer, at a random index.
+
+    :param base_net: Network, which copy (with removed layer) will be returned.
+    :param params: Parameters, defining possible choices.
+    :return: Copy of given network, with one less layer.
+    """
     if len(base_net.arch) <= 2:
         return add_layer(base_net, params)
     layer_idx = random.randint(1, len(base_net.arch) - 2)  # so that, Conv is always first, and Dense is always last.
@@ -79,6 +93,13 @@ def remove_layer(base_net, params):
 
 def change_opt(base_net, params):
     # type: (Network, Dict[str, List]) -> Network
+    """
+    Creates a copy of given Network, but with changed optimizer on which it will be trained.
+
+    :param base_net: Network, which copy will be returned.
+    :param params: Parameters, defining possible choices of optimizers (and their learning rates).
+    :return: Copy of given network, with changed optimizer.
+    """
     return Network(
         architecture=base_net.arch,
         copy_model=base_net.model,
@@ -91,6 +112,13 @@ def change_opt(base_net, params):
 
 def change_activation(base_net, params):
     # type: (Network, Dict[str, List]) -> Network
+    """
+    Creates a copy of given Network, but with changed activation function on each layer specified in architecture.
+
+    :param base_net: Network, which copy will be returned.
+    :param params: Parameters, defining possible choices of activation functions.
+    :return: Copy of given network, with changed activation functions.
+    """
     return Network(
         architecture=base_net.arch,
         copy_model=base_net.model,
@@ -102,6 +130,14 @@ def change_activation(base_net, params):
 
 def change_lr_schedule(base_net, params):
     # type: (Network, Dict[str, List]) -> Network
+    """
+    Creates a copy of given Network, but with changed callbacks (Learning Rate Scheduler specifically)
+    on which it will be trained.
+
+    :param base_net: Network, which copy will be returned.
+    :param params: Parameters, defining possible choices of LRS values used.
+    :return: Copy of given network, with changed callbacks.
+    """
     if random.choice(params['learning_decay_type']) == 'linear':
         def schedule(x):
             return base_net.opt.get_config()['lr'] - float(x * random.choice(params['learning_decay_rate']))

@@ -83,7 +83,6 @@ TODO: Bug. Nan in loss. Now in middle of the epoch. Maybe something with diverge
 TODO: Make different add-ons (such as combination of conv-conv-conv-max)
     - Basically make a function which uses a insert_layer helper method, on a random index
         (ideally with a req. that's it's after maxout).
-    - Good idea to create a file called helpers_mutate.
 
 TODO: Limit depth/number of weights.
     - 21/07 - Made a function to determine # of weights in the model.
@@ -103,3 +102,5 @@ TODO: Split helper methods based on what they are helping with. Maybe even make 
     - Done. Put in a subdir.
 
 TODO: Make comments for all the functions/methods
+    - 24/07 - commented all of network functions.
+    - 25/07 - comments on all of mutator, helpers_mutate functions.
