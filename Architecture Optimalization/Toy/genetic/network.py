@@ -8,6 +8,7 @@ from keras.models import Sequential, clone_model, Model
 from typing import List, Dict, Union
 
 import helpers
+from helpers_mutate import arch_to_layer
 from program_variables.program_params import debug
 
 
@@ -278,7 +279,7 @@ class Network:
         last_max_pool = True
         last_dropout = True
         for i in self.arch:
-            new_layer = helpers.arch_to_layer(i, self.act)
+            new_layer = arch_to_layer(i, self.act)
 
             if isinstance(new_layer, Conv2D):
                 last_max_pool = False

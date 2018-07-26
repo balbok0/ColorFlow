@@ -1,12 +1,10 @@
 import random
-import warnings
 from collections import defaultdict
 
-import keras
 import numpy as np
 from keras.activations import softmax, softplus, softsign, elu, relu, selu, linear, tanh, sigmoid, hard_sigmoid
-from keras.layers import MaxPool2D, Layer, Flatten, Dense, Dropout, Conv2D, Activation
-from keras.models import Sequential, Model
+from keras.layers import Layer, Flatten, Activation
+from keras.models import Model
 from keras.utils.io_utils import HDF5Matrix
 from scipy import interp
 from sklearn.metrics import roc_curve, auc
@@ -94,7 +92,7 @@ def get_memory_size(hdf5_data_set, n_samples=None):
     return n_samples * first.size * first.itemsize
 
 
-def get_masks(x_shape, y, n_train):
+def __get_masks(x_shape, y, n_train):
     # type: (Tuple[int], np.ndarray, int) -> (np.ndarray, np.ndarray)
     """
     Creates masks, which choose n_train random images after applying a mask.
@@ -206,7 +204,7 @@ def prepare_data(dataset_name='colorflow', first_time=True):
             memory_cost += 2 * get_memory_size(hf['val/y'])
             memory_cost += 2 * get_memory_size(hf['train/y'], n_train)
 
-            indexes_x, indexes_y = get_masks(hf['train/x'].shape, hf['train/y'][()], n_train)
+            indexes_x, indexes_y = __get_masks(hf['train/x'].shape, hf['train/y'][()], n_train)
 
         if memory_cost < psutil.virtual_memory()[1]:  # available memory
             with h5.File(fname) as hf:
@@ -234,55 +232,6 @@ def prepare_data(dataset_name='colorflow', first_time=True):
     return (x_train, y_train), (x_val, y_val)
 
 
-def arch_to_layer(layer, activation):
-    # type: (str, str) -> Layer
-    """
-    Given an architecture layer description, and an activation function, returns a new layer based on them.
-
-    :param layer: Layer description. Specific to THIS Network implementation.
-    :param activation: Activation function of a layer to be created.
-    :return: A new layer based on given description and activation.
-    """
-    if hasattr(layer, '__getitem__') and not isinstance(layer, str):
-        return Conv2D(filters=layer[1], kernel_size=layer[0], activation=activation, kernel_initializer='he_uniform',
-                      padding='same')
-
-    elif isinstance(layer, int):
-        return Dense(units=layer, activation=activation)
-
-    elif isinstance(layer, str) and layer.lower() in ['m', 'max', 'maxout', 'maxpool']:
-        return MaxPool2D()
-
-    elif isinstance(layer, str) and layer.lower().startswith(('drop', 'dropout')):
-        if layer.lower().startswith('dropout'):
-            return Dropout(rate=float(layer[7:]))
-        else:
-            return Dropout(rate=float(layer[4:]))
-    else:
-        raise BaseException('Illegal form of argument layer. '
-                            'Please modify fix the argument, or modify this file, to allow different args.')
-
-
-def layer_to_arch(layer):
-    """
-    Given a keras layer returns an architecture layer decription. Specific to THIS Network implementation.
-
-    :param layer: Keras layer, which is to be translated to architecture layer description.
-    :return: An architecture layer description based on given layer.
-    """
-    # type: Layer -> list
-    if isinstance(layer, Conv2D):
-        return [(layer.get_config()['kernel_size'], layer.get_config()['filters'])]
-    elif isinstance(layer, MaxPool2D):
-        return ['max']
-    elif isinstance(layer, Dropout):
-        return ['drop%.2f' % layer.get_config()['rate'], 'dropout%.2f' % layer.get_config()['rate']]
-    elif isinstance(layer, Dense):
-        return [layer.get_config()['units']]
-    else:
-        return [None]
-
-
 def assert_model_arch_match(model, arch):
     # type: (Model, List) -> bool
     """
@@ -308,139 +257,3 @@ def assert_model_arch_match(model, arch):
                 return False
         arch_idx += 1
     return True
-
-
-def find_first_dense(model):
-    # type: (Model) -> (int, int)
-    """
-    Finds an index of first dense layer in a given model.
-
-    :param model: A model in which index of the first dense layer is to be found.
-    :return: Tuple containing two ints:
-                    (index of first dense layer in layer count, index of first dense layer in weights count).
-                    Returns (None, None) if no dense layer exisits in the model.
-    """
-    layer_idx = 0
-    weight_idx = 0
-    for l in model.layers:
-        if isinstance(l, Dense):
-            break
-        layer_idx += 1
-        weight_idx += len(l.get_weights())
-    else:
-        return None, None
-    return layer_idx, weight_idx
-
-
-def insert_layer(model, layer, index):
-    # type: (Model, Layer, int) -> Model
-    """
-    Immutable. Creates copy of a model, adds a layer at a given index, and returns it.
-
-    :param model: A model, which copy will be modified and returned.
-    :param layer: A layer to be inserted.
-    :param index: An index at which layer is supposed to be inserted at. > 0 and < len(layers) - 1
-    :return: A new model, with specified layer inserted at specified index. Not complied yet.
-    """
-    # Copy of the whole model. Deep copy, due to safety.
-    model_copy = keras.models.clone_model(model)
-    model_copy.set_weights(model.get_weights())
-
-    result = Sequential()
-
-    # Such a deep copy is needed, so that input_shape is not specified, and layers are not shared.
-    for l in model_copy.layers[:index]:
-        result.add(__clone_layer(l))
-    result.add(layer)
-    for l in model_copy.layers[index:]:
-        result.add(__clone_layer(l))
-
-    # Needed to clone weights.
-    weight_number_before = 0
-    for l in model_copy.layers[:index]:
-        weight_number_before += len(l.get_weights())
-    weight_number_after = weight_number_before + len(layer.get_weights()) + len(model_copy.layers[index].get_weights())
-
-    if isinstance(layer, MaxPool2D):
-        # MaxPool changes shape of the output, thus weights will not have the same shape.
-        new_weights = model_copy.get_weights()[:weight_number_before]
-
-        _, first_dense = find_first_dense(result)
-        new_weights += result.get_weights()[weight_number_before:first_dense + 1]  # New weights, shape changed.
-        new_weights += model_copy.get_weights()[first_dense + 1:]  # Back to old shape, since Dense resets it.
-
-    else:
-        new_weights = model.get_weights()[:weight_number_before]
-        if (index < len(model_copy.layers) and isinstance(model_copy.layers[index], Flatten)) or \
-                (index < len(model_copy.layers) - 1 and isinstance(model_copy.layers[index], MaxPool2D) and
-                    isinstance(model_copy.layers[index+1], Flatten)):
-            _, first_dense = find_first_dense(result)
-            new_weights += result.get_weights()[weight_number_before:first_dense + 1]  # New weights, shape changed.
-            new_weights += model_copy.get_weights()[first_dense - 1:]  # Back to old shape, since Dense resets it.
-        else:
-            new_weights += result.get_weights()[weight_number_before:weight_number_after]
-            new_weights += model_copy.get_weights()[weight_number_before + len(model_copy.layers[index].get_weights()):]
-    result.set_weights(new_weights)
-    return result
-
-
-def remove_layer(model, index):
-    # type: (Model, int) -> Model
-    """
-    Immutable. Creates copy of a model, removes a layer at a given index, and returns it.
-
-    :param model: A model, which copy will be modified and returned.
-    :param index: index of layer to be removed. > 0 < len(layers) - 1
-    :return: A new model, with a layer at specified index removed. Not compiled yet.
-    """
-    # Copy of the whole model. Deep copy, due to safety.
-    model_copy = keras.models.clone_model(model)
-    model_copy.set_weights(model.get_weights())
-
-    layer = model_copy.layers[index]  # type: Layer
-
-    warnings.warn("Since a layer at a chosen index is changing shape of data, model doesn't have to compile.") \
-        if isinstance(layer, Flatten) else None
-
-    result = Sequential()
-
-    # Such a deep copy is needed, so that input_shape is not specified, and layers are not shared.
-    for l in model_copy.layers[:index]:
-        result.add(__clone_layer(l))
-
-    for l in model_copy.layers[(index+1):]:
-        result.add(__clone_layer(l))
-
-    # Needed to clone weights.
-    weight_number_before = 0
-    for l in model_copy.layers[:index]:
-        weight_number_before += len(l.get_weights())
-    layer_weight_width = len(model_copy.layers[index].get_weights())
-    weight_number_after = weight_number_before + layer_weight_width
-
-    if isinstance(layer, MaxPool2D):
-        # MaxPool changes shape of the output, thus weights will not have the same shape.
-        new_weights = model_copy.get_weights()[:weight_number_before]
-        _, first_dense = find_first_dense(result)
-        new_weights += result.get_weights()[weight_number_before:first_dense + 1]
-        new_weights += model_copy.get_weights()[first_dense + 1:]
-    else:
-        new_weights = model_copy.get_weights()[:weight_number_before]
-        new_weights += result.get_weights()[weight_number_before:weight_number_after - (layer_weight_width / 2)]
-        new_weights += model_copy.get_weights()[weight_number_after + (layer_weight_width / 2):]
-
-    result.set_weights(new_weights)
-    return result
-
-
-def __clone_layer(layer):
-    # type: (Layer) -> Layer
-    """
-    Clones a layer, with the exact same configuration as a given one.
-        It removes variables not mentioned in configuration. In example:
-        input shape, which is given due to adding layer to model.
-
-    :param layer: Layer to be cloned.
-    :return: An exact copy of a given layer, only based on configuration (no additional information is used).
-    """
-    return type(layer).from_config(layer.get_config())
