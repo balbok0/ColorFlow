@@ -342,11 +342,52 @@ def _insert_layer(model, layer, index):
                 (index < len(model_copy.layers) - 1 and isinstance(model_copy.layers[index], MaxPool2D) and
                     isinstance(model_copy.layers[index+1], Flatten)):
             _, first_dense = find_first_dense(result)
+
+            print('_insert_layer if path chosen')
+            print('new_weights (part 1) model weights shape:')
+            for i in new_weights:
+                print('\t%d' % len(i))
+            print('')
+
             new_weights += result.get_weights()[weight_number_before:first_dense + 1]  # New weights, shape changed.
+
+            if deep_debug:
+                print('new_weights (part 2) model weights shape:')
+                for i in new_weights:
+                    print('\t%d' % len(i))
+                print('')
+
             new_weights += model_copy.get_weights()[first_dense - 1:]  # Back to old shape, since Dense resets it.
+
+            if deep_debug:
+                print('new_weights (part 3) model weights shape:')
+                for i in new_weights:
+                    print('\t%d' % len(i))
+                print('')
         else:
-            new_weights += result.get_weights()[weight_number_before:weight_number_after]
-            new_weights += model_copy.get_weights()[weight_number_before + len(model_copy.layers[index].get_weights()):]
+            if deep_debug:
+                print('_insert_layer else path chosen')
+                print('new_weights (part 1) model weights shape:')
+                for i in new_weights:
+                    print('\t%d' % len(i))
+                print('')
+
+            new_weights += result.get_weights()[weight_number_before:weight_number_after + 1]
+
+            if deep_debug:
+                print('new_weights (part 2) model weights shape:')
+                for i in new_weights:
+                    print('\t%d' % len(i))
+                print('')
+
+            new_weights += model_copy.get_weights()[weight_number_before + len(model_copy.layers[index].get_weights()) + 1:]
+
+            if deep_debug:
+                print('new_weights (part 3) model weights shape:')
+                for i in new_weights:
+                    print('\t%d' % len(i))
+                print('')
+
     result.set_weights(new_weights)
     return result
 

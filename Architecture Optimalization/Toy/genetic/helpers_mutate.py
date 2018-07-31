@@ -212,3 +212,63 @@ def add_conv_max(base_net, params, conv_num=3):
         activation=base_net.act,
         callbacks=base_net.callbacks
     )
+
+
+def add_dense_drop(base_net, params):
+    # type: (Network, Dict[str, List]) -> Network
+    """
+
+    :param base_net:
+    :param params:
+    :return:
+    """
+    drop_idx = []
+    idx = 0  # Since Activation layer is always first, and Flatten is before any Dropouts.
+    for l in base_net.arch:
+        if isinstance(l, str) and l.startswith('drop'):
+            drop_idx += [idx]
+        idx += 1
+
+    if not drop_idx:
+        drop_idx = [helpers.find_first_dense(base_net.model)[0]]
+
+    idx_add = random.choice(drop_idx)
+    dense_params = random.choice(params['dense_size'])
+    drop_params = 'drop%0.2g' % random.choice(params['dropout'])
+
+    new_arch = base_net.arch
+    new_model = base_net.model
+
+    new_arch = new_arch[:idx_add + 1] + [drop_params] + new_arch[idx_add + 1:]
+    new_model = helpers._insert_layer(
+        new_model,
+        helpers.arch_to_layer(drop_params, activation=base_net.act),
+        idx_add + 3
+    )
+
+    if const.debug:
+        print('add_dense_drop: after adding dropout')
+        print('Index of adding sequence: %d' % idx_add)
+        print('Old arch: {}'.format(base_net.arch))
+        print('New arch: {}'.format(new_arch))
+        print('')
+
+    new_arch = new_arch[:idx_add + 1] + [dense_params] + new_arch[idx_add + 1:]
+    new_model = helpers._insert_layer(
+        new_model,
+        helpers.arch_to_layer(dense_params, activation=base_net.act),
+        idx_add + 3
+    )
+
+    if const.debug:
+        print('add_dense_drop: at the end')
+        print('New arch: {}'.format(new_arch))
+        print('')
+
+    return Network(
+        architecture=new_arch,
+        copy_model=new_model,
+        opt=base_net.opt,
+        activation=base_net.act,
+        callbacks=base_net.callbacks
+    )
