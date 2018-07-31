@@ -27,17 +27,7 @@ class __Mutator(object):
         :param params: A dictionary of choices which can modify the network.
         """
         if params is None:
-            params = {
-                'kernel_size': [(3, 3), (5, 5), (7, 7)],
-                'conv_filters': [8, 16],
-                'dropout': [0.3, 0.4, 0.5, 0.6, 0.7],
-                'dense_size': [32, 64, 128, 256],
-                'optimizer': ['adam', 'sgd', 'nadam'],
-                'optimizer_lr': [None, .0001, .0003, .001, .003, .01],
-                'learning_decay_type': ['linear', 'exp'],
-                'learning_decay_rate': [0.7, 0.8, 0.9],
-                'activation': ['relu', 'sigmoid', 'tanh']
-            }
+            params = const.mutations
 
         else:
             for i in ['kernel_size', 'conv_filers', 'dropout', 'dense_size', 'optimizer', 'optimizer_lr', 'activation']:
