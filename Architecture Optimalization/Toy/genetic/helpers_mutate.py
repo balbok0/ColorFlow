@@ -217,10 +217,12 @@ def add_conv_max(base_net, params, conv_num=3):
 def add_dense_drop(base_net, params):
     # type: (Network, Dict[str, List]) -> Network
     """
+    Adds a sequence of Dense layer, followed by Dropout layer to a copy of a given Network.
 
-    :param base_net:
-    :param params:
-    :return:
+    :param base_net: Network, which copy (with added sequence) will be returned.
+    :param params: Parameters, defining possible choice for parameters for dense and dropout layers.
+    :return: Copy of given network, with additional sequence inserted in a position of a random dropout layer,
+                or at the beginning of 1D computations in the model.
     """
     drop_idx = []
     idx = 0  # Since Activation layer is always first, and Flatten is before any Dropouts.
@@ -264,6 +266,49 @@ def add_dense_drop(base_net, params):
         print('add_dense_drop: at the end')
         print('New arch: {}'.format(new_arch))
         print('')
+
+    return Network(
+        architecture=new_arch,
+        copy_model=new_model,
+        opt=base_net.opt,
+        activation=base_net.act,
+        callbacks=base_net.callbacks
+    )
+
+
+def remove_conv_max(base_net, params):
+    # type: (Network, Dict[str, List]) -> Network
+    """
+    Removes a sequence of Convolution layers, followed by MaxOut layer, in a given Network.\n
+    If no such sequence is found, then it adds one, instead of removing it.
+
+    :param base_net: A Network, which copy, with mutations, will be returned.
+    :param params: Parameters defining possible choices for add_conv_max, if no MaxOut layers are found.
+    :return: A Network, based on base_net, but with a sequence of Conv layers and a MaxOut layer removed.
+    """
+    max_idx = []
+    idx = 0  # Since Activation layer is always first.
+    for l in base_net.arch:
+        if isinstance(l, str) and l.startswith('max'):
+            max_idx += [idx]
+        idx += 1
+
+    if not max_idx:
+        add_conv_max(base_net, params)
+
+    curr_idx = random.randint(1, len(max_idx))
+    end = max_idx[curr_idx - 1]
+
+    new_model = base_net.model
+
+    if curr_idx == 1:
+        start = 0
+    else:
+        start = max_idx[curr_idx - 2]
+    for i in range(start, end):
+        new_model = helpers._remove_layer(new_model, start + 1)
+
+    new_arch = base_net.arch[:start] + base_net.arch[end:]
 
     return Network(
         architecture=new_arch,

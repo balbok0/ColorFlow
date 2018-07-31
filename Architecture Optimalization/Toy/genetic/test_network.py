@@ -35,8 +35,16 @@ def check_add_dense_drop_seq():
     print(add_dense_drop(n2, m.params).arch)
 
 
+def check_rmv_conv_max_sequence():
+    from helpers_mutate import remove_conv_max
+    n2 = Network(architecture=[
+        ((3, 3), 32), 'max', ((3, 3), 32), ((3, 3), 32), 'max', ((3, 3), 32), ((3, 3), 32), 'max', 10, 'drop0.2', 10
+    ])
+    print(remove_conv_max(n2, m.params).arch)
+
+
 def main():
-    check_add_dense_drop_seq()
+    check_rmv_conv_max_sequence()
 
 
 if __name__ == '__main__':
