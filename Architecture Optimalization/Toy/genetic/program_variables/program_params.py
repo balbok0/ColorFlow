@@ -5,3 +5,4 @@ min_depth = 3
 
 # Development variables
 debug = True
+deep_debug = False

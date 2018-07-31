@@ -1,15 +1,20 @@
+from mutator import Mutator
 from network import Network
 
+# Start
+# When a new requirement is added tbd on the beginning of workings of mutator/network, please include that fn call
+# here, so that it's not repeated in every test.
+Network.prepare_data('testing')
+m = Mutator()
+n = Network(architecture=[((3, 3), 32), ((3, 3), 32), ((3, 3), 32), 'max', 30, 30, 'drop0.4', 10])
 
-def start():
-    # When a new requirement is added tbd on the beginning of workings of mutator/network, please include that fn call
-    # here, so that it's not repeated in every test.
-    Network.prepare_data('testing')
+
+# End of Start.
 
 
 def check_drop_last_in_arch():
-    n = Network(architecture=[((3, 3), 32), 'max', ((5, 5), 6), 32, 'drop0.4'], opt='sgd', activation='relu')
-    assert not (isinstance(n.arch[-1], str) and n.arch[-1].startswith('drop'))
+    n2 = Network(architecture=[((3, 3), 32), 'max', ((5, 5), 6), 32, 'drop0.4'], opt='sgd', activation='relu')
+    assert not (isinstance(n2.arch[-1], str) and n2.arch[-1].startswith('drop'))
 
 
 def check_nans():
@@ -18,9 +23,14 @@ def check_nans():
     print(_m.get_best_architecture(verbose=1, dataset='testing', population_size=6, generations=20))
 
 
+def check_add_conv_max_sequence():
+    from helpers_mutate import add_conv_max
+    n2 = Network(architecture=[((3, 3), 32), ((3, 3), 32), ((3, 3), 32), 'max', 30, 30, 'drop0.4', 10])
+    print(add_conv_max(n2, m.params, 3).arch)
+
+
 def main():
-    start() # Do not delete. It's needed for correct test.
-    check_drop_last_in_arch()
+    check_add_conv_max_sequence()
 
 
 if __name__ == '__main__':

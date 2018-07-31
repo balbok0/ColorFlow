@@ -106,3 +106,7 @@ TODO: Make comments for all the functions/methods
     - 25/07 - comments on all of mutator, helpers_mutate functions.
 
 TODO: Instead of having random mutation, make a mutation depended on two parents, and make random choices based on them. Or combine it and use both (random and parents version).
+    - 30/07 - Basic function is written. Throws an error with copying over weights.
+
+TODO: BUG. Cross-references are not working. in B: import A, in A: import B.
+    - 30/07 - Done with helpers_mutate and Network. Got to check other files though.

@@ -18,12 +18,14 @@
       <w>maxpools</w>
       <w>mnist</w>
       <w>nadam</w>
+      <w>overfitting</w>
       <w>pseudorapidity</w>
       <w>pythia</w>
       <w>reco</w>
       <w>rmsprop</w>
       <w>skyblue</w>
       <w>standad</w>
+      <w>tanh</w>
       <w>tprs</w>
     </words>
   </dictionary>
