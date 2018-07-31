@@ -84,7 +84,7 @@ TODO: Make different add-ons (such as combination of conv-conv-conv-max)
     - Basically make a function which uses a insert_layer helper method, on a random index
         (ideally with a req. that's it's after maxout).
 
-TODO: Limit depth/number of weights.
+TODO: Limit depth/number of weights. Include a strict weight # cap.
     - 21/07 - Made a function to determine # of weights in the model.
     - 22/07 - Implemented in add_layer method. However, it doesn't have strict weight # cap. (Only a loose one, before adding a new layer)
     - 24/07 - Added a max depth requirement when generating a networks for first time.
@@ -106,7 +106,10 @@ TODO: Make comments for all the functions/methods
     - 25/07 - comments on all of mutator, helpers_mutate functions.
 
 TODO: Instead of having random mutation, make a mutation depended on two parents, and make random choices based on them. Or combine it and use both (random and parents version).
+
+TODO: Add a sequence of conv_max, instead of adding one layer at a time.
     - 30/07 - Basic function is written. Throws an error with copying over weights.
+    - 31/07 - Fixed an error. Not yet implemented. Before implementing writing a corresponding remove function is suggested.
 
 TODO: BUG. Cross-references are not working. in B: import A, in A: import B.
-    - 30/07 - Done with helpers_mutate and Network. Got to check other files though.
+    - 30/07 - Done with helpers_mutate and Network.
