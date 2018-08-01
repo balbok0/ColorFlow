@@ -23,7 +23,7 @@ def check_nans():
     print(_m.get_best_architecture(verbose=1, dataset='testing', population_size=6, generations=20))
 
 
-def check_add_conv_max_sequence():
+def check_add_conv_max_seq():
     from helpers_mutate import add_conv_max
     n2 = Network(architecture=[((3, 3), 32), ((3, 3), 32), ((3, 3), 32), 'max', 30, 30, 'drop0.4', 10])
     print(add_conv_max(n2, m.params, 3).arch)
@@ -35,7 +35,7 @@ def check_add_dense_drop_seq():
     print(add_dense_drop(n2, m.params).arch)
 
 
-def check_rmv_conv_max_sequence():
+def check_rmv_conv_max_seq():
     from helpers_mutate import remove_conv_max
     n2 = Network(architecture=[
         ((3, 3), 32), 'max', ((3, 3), 32), ((3, 3), 32), 'max', ((3, 3), 32), ((3, 3), 32), 'max', 10, 'drop0.2', 10
@@ -43,8 +43,16 @@ def check_rmv_conv_max_sequence():
     print(remove_conv_max(n2, m.params).arch)
 
 
+def check_rmv_dense_drop_seq():
+    from helpers_mutate import remove_dense_drop
+    n2 = Network(architecture=[
+        ((3, 3), 32), 'max', ((3, 3), 32), ((3, 3), 32), 'max', 10, 'drop0.2', 20, 'drop0.3', 10
+    ])
+    print(remove_dense_drop(n2, m.params).arch)
+
+
 def main():
-    check_rmv_conv_max_sequence()
+    check_rmv_dense_drop_seq()
 
 
 if __name__ == '__main__':

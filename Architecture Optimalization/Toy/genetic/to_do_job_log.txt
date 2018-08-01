@@ -109,7 +109,11 @@ TODO: Instead of having random mutation, make a mutation depended on two parents
 
 TODO: Add a sequence of conv_max, instead of adding one layer at a time.
     - 30/07 - Basic function is written. Throws an error with copying over weights.
-    - 31/07 - Fixed an error. Not yet implemented. Before implementing writing a corresponding remove function is suggested.
+    - 31/07 - 1. Fixed an error. Not yet implemented.
+              2. Added a mirror function of adding a dense layer, followed by a dropout.
+                    // Note: Even if it will be added at the end, dropout will be dropped, due to Network __init__ restrictions.
+              3. Added remove_conv_max function. Tested and working.
+    - 01/08 - 1. Added remove_dense_drop function. Tested and working.
 
 TODO: BUG. Cross-references are not working. in B: import A, in A: import B.
     - 30/07 - Done with helpers_mutate and Network.

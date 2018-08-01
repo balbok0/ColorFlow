@@ -317,3 +317,77 @@ def remove_conv_max(base_net, params):
         activation=base_net.act,
         callbacks=base_net.callbacks
     )
+
+
+def remove_dense_drop(base_net, params):
+    # type: (Network, Dict[str, List]) -> Network
+    """
+    Removes a sequence of Dense layer, followed by Dropout layer/layers, in a given Network.\n
+    If no such sequence is found, then it adds one (Dropout + Dense), instead of removing it.
+
+    :param base_net: A Network, which copy, with mutations, will be returned.
+    :param params: Parameters defining possible choices for add_dense_drop, if no Dropout layers are found.
+    :return: A Network, based on base_net, but with a sequence of Dense layer and a Dropout layers removed.
+    """
+    drop_idx = []
+    idx = 0  # Since Activation layer is always first, and Flatten is before any Dropouts.
+    for l in base_net.arch:
+        if isinstance(l, str) and l.startswith('drop'):
+            drop_idx += [idx]
+        idx += 1
+
+    if not drop_idx:
+        add_dense_drop(base_net, params)
+
+    curr_idx = random.randint(1, len(drop_idx))
+    drop_net_idx = drop_idx[curr_idx - 1] + 2
+    drop_arch_idx = drop_idx[curr_idx - 1]
+
+    new_model = base_net.model
+    new_arch = base_net.arch
+
+    if const.deep_debug:
+        print('remove_dense_drop')
+        print('Index of drop layer in arch: {}'.format(drop_arch_idx))
+        print('Drop layer: {}'.format(new_arch[drop_arch_idx]))
+        print('Layer before: {}'.format(new_arch[drop_arch_idx - 1]))
+        print('')
+
+    if isinstance(base_net.arch[drop_arch_idx - 1], int):  # Previous layer is dense.
+        if const.deep_debug:
+            print('remove_dense_drop - 1st path (layer before is dense)')
+            print('')
+        new_model = helpers._remove_layer(new_model, drop_net_idx)
+        new_model = helpers._remove_layer(new_model, drop_net_idx - 1)
+        new_arch = new_arch[:drop_arch_idx-1] + new_arch[drop_arch_idx+1:]
+
+    elif isinstance(base_net.arch[drop_arch_idx - 1], str) and \
+            base_net.arch[drop_arch_idx - 1].startswith('drop'):  # Previous layer is dropout.
+        if const.deep_debug:
+            print('remove_dense_drop - 2nd path (layer before is drop)')
+            print('')
+        new_model = helpers._remove_layer(new_model, drop_net_idx)
+        new_model = helpers._remove_layer(new_model, drop_net_idx - 1)
+        lay_before = 2
+        while isinstance(base_net.arch[drop_arch_idx - lay_before], int) or \
+                (isinstance(base_net.arch[drop_arch_idx - lay_before], str) and
+                 base_net.arch[drop_arch_idx - lay_before].startswith('drop')):
+            new_model = helpers._remove_layer(new_model, drop_net_idx - lay_before)
+            lay_before += 1
+            if isinstance(base_net.arch[drop_arch_idx - lay_before + 1], int):
+                break
+        new_arch = new_arch[:drop_arch_idx - lay_before + 1] + new_arch[drop_arch_idx + 1:]
+    else:
+        if const.deep_debug:
+            print('remove_dense_drop - 3rd path (layer before is something else)')
+            print('')
+        new_model = helpers._remove_layer(new_model, drop_net_idx)
+        new_arch = new_arch[:drop_arch_idx] + new_arch[drop_arch_idx + 1:]
+
+    return Network(
+        architecture=new_arch,
+        copy_model=new_model,
+        opt=base_net.opt,
+        activation=base_net.act,
+        callbacks=base_net.callbacks
+    )
