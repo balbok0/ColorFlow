@@ -232,7 +232,7 @@ def add_dense_drop(base_net, params):
         idx += 1
 
     if not drop_idx:
-        drop_idx = [helpers.find_first_dense(base_net.model)[0]]
+        drop_idx = [helpers.find_first_dense(base_net.model)[0] - 1]
 
     idx_add = random.choice(drop_idx)
     dense_params = random.choice(params['dense_size'])
@@ -245,7 +245,7 @@ def add_dense_drop(base_net, params):
     new_model = helpers._insert_layer(
         new_model,
         helpers.arch_to_layer(drop_params, activation=base_net.act),
-        idx_add + 3
+        idx_add + 2
     )
 
     if const.debug:

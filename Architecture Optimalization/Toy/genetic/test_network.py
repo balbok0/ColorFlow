@@ -33,6 +33,8 @@ def check_add_dense_drop_seq():
     from helpers_mutate import add_dense_drop
     n2 = Network(architecture=[((3, 3), 32), ((3, 3), 32), ((3, 3), 32), 'max', 30, 30, 'drop0.4', 10])
     print(add_dense_drop(n2, m.params).arch)
+    n2 = Network(architecture=[((7, 7), 16), 'max', 128])
+    print(add_dense_drop(n2, m.params).arch)
 
 
 def check_rmv_conv_max_seq():

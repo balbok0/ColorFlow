@@ -17,5 +17,5 @@ mutations = {
             }
 
 # Development variables
-debug = True
+debug = False
 deep_debug = False

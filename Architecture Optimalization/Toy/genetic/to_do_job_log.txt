@@ -107,7 +107,7 @@ TODO: Make comments for all the functions/methods
 
 TODO: Instead of having random mutation, make a mutation depended on two parents, and make random choices based on them. Or combine it and use both (random and parents version).
 
-TODO: Add a sequence of conv_max, instead of adding one layer at a time.
+30/07-01/08: Add a sequence of conv_max, instead of adding one layer at a time.
     - 30/07 - Basic function is written. Throws an error with copying over weights.
     - 31/07 - 1. Fixed an error. Not yet implemented.
               2. Added a mirror function of adding a dense layer, followed by a dropout.

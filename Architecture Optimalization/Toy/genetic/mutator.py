@@ -104,7 +104,7 @@ class __Mutator(object):
             scores = collections.OrderedDict(sorted(tmp_scores.items(), key=lambda t: t[1]))
 
             printing = {
-                0: 'Generation {gen}. Best network scored: {score}'.format(gen=i+1, score=scores[best_net]),
+                0: 'Generation {gen}. Best network scored: {score}'.format(gen=i + 1, score=scores[best_net]),
                 1: 'Generation {gen}. Best network, with architecture: {arch}, optimizer {opt}, and activation '
                    'function {act}. It\'s score is {score}.'.format(
                     gen=i + 1, arch=best_net.arch, opt=best_net.opt, act=best_net.act, score=scores[best_net]
@@ -117,12 +117,12 @@ class __Mutator(object):
             log_save.print_message(printing[verbose])
 
             # Save the best net of current generation.
-            best_net.save(file_path='{dir}net_{num:03d}.h5'.format(dir=saving_dir, num=i+1))
+            best_net.save(file_path='{dir}net_{num:03d}.h5'.format(dir=saving_dir, num=i + 1))
 
             if not i + 1 == generations:
 
                 # Remove bottom half of population.
-                for _ in range(int(population_size/2)):
+                for _ in range(int(population_size / 2)):
                     scores.popitem(last=False)
 
                 self.networks = scores.keys()
@@ -210,10 +210,17 @@ class __Mutator(object):
         if self.params == {}:
             raise Exception('Mutator not initialized.')
 
-        possible_changes = [helpers_mutate.add_layer, helpers_mutate.remove_layer, helpers_mutate.change_opt,
-                            helpers_mutate.change_activation, helpers_mutate.change_lr_schedule]
+        possible_changes = [
+            helpers_mutate.add_dense_drop,
+            helpers_mutate.add_conv_max,
+            helpers_mutate.remove_dense_drop,
+            helpers_mutate.remove_conv_max,
+            helpers_mutate.change_opt,
+            helpers_mutate.change_activation,
+            helpers_mutate.change_lr_schedule
+        ]
 
-        probabilities = [3, 2, 1, 1, 1]
+        probabilities = [10, 9, 7, 7, 4, 5, 2]
         probabilities = np.divide(probabilities, 1. * np.sum(probabilities))  # Normalization, for probabilities.
 
         # Number of changes is capped, and distributed exponentially.
