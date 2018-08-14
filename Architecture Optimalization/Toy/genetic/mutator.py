@@ -38,10 +38,10 @@ class __Mutator(object):
         self.networks = []  # type: List[Network]
 
     def get_best_architecture(
-            self, population_size=10, generations=20, saving_dir=None,
+            self, population_size=10, generations=20, saving_dir=None, starting_population=None,
             epochs=2, batch_size=100, shuffle='batch', verbose=0, dataset='colorflow'
     ):
-        # type: (__Mutator, int, int, str, int, int, str, int, str) -> Model
+        # type: (__Mutator, int, int, str, List[Network], int, int, str, int, str) -> Model
         """
         Main function of Mutator.\n
         Trains neural networks, and evolves them through generations, in order to find architecture, optimezr, etc.
@@ -50,6 +50,7 @@ class __Mutator(object):
         :param population_size: Number of neural networks in one genration.
         :param generations: Number of generations.
         :param saving_dir: Directory to which models are saved.
+        :param starting_population: Population of networks to start with. On default a random population is generated.
         :param epochs: Number of epochs each network in each generation is trained.
         :param batch_size: Look at keras.models.Model.fit function documentation.
         :param shuffle: Look at keras.models.Model.fit function documentation.
@@ -74,6 +75,13 @@ class __Mutator(object):
         assert generations > 0
         assert os.path.exists(saving_dir)
 
+        if starting_population is not None:
+            if len(starting_population) >= population_size:
+                self.networks = starting_population[:population_size]
+            else:
+                self.networks = starting_population[:]
+                for i in range(len(starting_population), population_size):
+                    self.networks.append(self.__create_random_model())
         for i in range(population_size):
             self.networks.append(self.__create_random_model())
 

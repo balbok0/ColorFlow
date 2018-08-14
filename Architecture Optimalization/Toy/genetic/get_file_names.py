@@ -10,6 +10,11 @@ generators = ['Herwig Angular', 'Herwig Dipole', 'Sherpa',
 
 
 def get_ready_path(gen):
+    # type: (str) -> str
+    """
+    :param gen: A generator which data path is to be returned.
+    :return: Path to prepared data of a given generator.
+    """
     gen_path = ready_path + gen.replace(' ', '/') + '/data.h5'
     if not os.path.exists(gen_path):
         raise IOError("Generator " + gen + " not found, at path: " + gen_path)

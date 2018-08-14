@@ -80,10 +80,6 @@ TODO: Bug. Nan in loss. Now in middle of the epoch. Maybe something with diverge
 17/07: Make probability distributions for different choices in __mutate.
     - Done. Used numpy.random instead of random.
 
-TODO: Make different add-ons (such as combination of conv-conv-conv-max)
-    - Basically make a function which uses a insert_layer helper method, on a random index
-        (ideally with a req. that's it's after maxout).
-
 TODO: Limit depth/number of weights. Include a strict weight # cap.
     - 21/07 - Made a function to determine # of weights in the model.
     - 22/07 - Implemented in add_layer method. However, it doesn't have strict weight # cap. (Only a loose one, before adding a new layer)
@@ -101,9 +97,10 @@ TODO: Split helper methods based on what they are helping with. Maybe even make 
 24/07: Split local variables to 2 files. One for files, one for constants.
     - Done. Put in a subdir.
 
-TODO: Make comments for all the functions/methods
+24-25/07: Make comments for all the functions/methods
     - 24/07 - commented all of network functions.
     - 25/07 - comments on all of mutator, helpers_mutate functions.
+    - 14/08 - comments on all of helpers/get_file_names/log_save. However, added private helpers for helpers_mutate, which won't have comments.
 
 TODO: Instead of having random mutation, make a mutation depended on two parents, and make random choices based on them. Or combine it and use both (random and parents version).
 
@@ -119,5 +116,7 @@ TODO: Instead of having random mutation, make a mutation depended on two parents
     - Done with helpers_mutate and Network.
 
 TODO: Remake the code for helpers/mutator/network, so that non-random injections are supported
-    - 14/08 - Done for helpers_mutate. Checked Network, not needed.
+    - 14/08 - 1. Done for helpers_mutate. Checked Network, not needed.
+              2. Done for creating new Networks in Mutator.
     - It can help debug the Nan in loss bug, which is extremely hard to reproduce (2-6h for single reproduction)
+    - Still need an idea on what to do with mutations, since they're random right now.
