@@ -63,6 +63,24 @@ def add_layer(base_net, params):
     )
 
 
+def __add_layer(base_net, layer_name, layer_idx):
+    # type: (Network, Union[int, str, Tuple[Tuple[int], int]], int) -> Network
+
+    new_arch = base_net.arch[:layer_idx] + [layer_name] + base_net.arch[layer_idx:]
+
+    layer_idx += 1  # difference between net.arch and actual architecture. - First activation layer.
+    if isinstance(layer_name, int) or (isinstance(layer_name, str) and layer_name.startswith('drop')):
+        layer_idx += 1  # difference between net.arch and actual architecture. - Flatten layer.
+
+    return Network(
+        architecture=new_arch,
+        copy_model=helpers._insert_layer(base_net.model, helpers.arch_to_layer(layer_name, base_net.act), layer_idx),
+        opt=base_net.opt,
+        activation=base_net.act,
+        callbacks=base_net.callbacks
+    )
+
+
 def remove_layer(base_net, params):
     # type: (Network, Dict[str, List]) -> Network
     """

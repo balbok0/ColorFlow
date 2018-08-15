@@ -380,7 +380,8 @@ def _insert_layer(model, layer, index):
                     print('\t%d' % len(i))
                 print('')
 
-            new_weights += model_copy.get_weights()[weight_number_before + len(model_copy.layers[index].get_weights()) + 1:]
+            new_weights += model_copy.\
+                get_weights()[weight_number_before + len(model_copy.layers[index].get_weights()) + 1:]
 
             if deep_debug:
                 print('new_weights (part 3) model weights shape:')

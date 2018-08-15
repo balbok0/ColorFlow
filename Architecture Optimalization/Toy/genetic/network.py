@@ -129,7 +129,7 @@ class Network:
             self.callbacks = Network.default_callbacks
         self.arch = architecture  # type: List
         self.act = activation  # type: str
-        self.model_created = False  # type: bool
+        self.__model_created = False  # type: bool
         if isinstance(opt, optimizers.Optimizer):
             self.opt = opt  # type: optimizers.Optimizer
         else:
@@ -263,10 +263,10 @@ class Network:
         With already set architecture, translates it into actual keras model.
         Also compiles it, so that an actual model is ready to use.
         """
-        if self.model_created:
+        if self.__model_created:
             raise Exception('Cannot recreate a new model in the same instance.')
 
-        self.model_created = True
+        self.__model_created = True
 
         if Network.__x_train is None or Network.__x_val is None or Network.__y_train is None or Network.__y_val is None:
             raise Exception('Please prepare data before. creating a new model.')
