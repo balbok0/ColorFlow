@@ -261,6 +261,7 @@ def assert_model_arch_match(model, arch):
                     print(l.get_config())
                     print('')
                 return False
+
         arch_idx += 1
     return True
 
@@ -467,6 +468,24 @@ def __clone_layer(layer):
     return type(layer).from_config(layer.get_config())
 
 
+def arch_type(layer):
+    # type: (object) -> str
+    if hasattr(layer, '__getitem__') and not isinstance(layer, str):
+        return 'conv'
+
+    elif isinstance(layer, int):
+        return 'dense'
+
+    elif isinstance(layer, str) and layer.lower() in ['m', 'max', 'maxout', 'maxpool']:
+        return 'max'
+
+    elif isinstance(layer, str) and layer.lower().startswith(('drop', 'dropout')):
+        return 'drop'
+    else:
+        raise BaseException('Illegal form of argument layer. '
+                            'Please modify fix the argument, or modify this file, to allow different args.')
+
+
 def arch_to_layer(layer, activation):
     # type: (Union[str, Tuple, int], str) -> Layer
     """
@@ -476,17 +495,19 @@ def arch_to_layer(layer, activation):
     :param activation: Activation function of a layer to be created.
     :return: A new layer based on given description and activation.
     """
-    if hasattr(layer, '__getitem__') and not isinstance(layer, str):
+    layer_type = arch_type(layer)
+
+    if layer_type == 'conv':
         return Conv2D(filters=layer[1], kernel_size=layer[0], activation=activation, kernel_initializer='he_uniform',
                       padding='same')
 
-    elif isinstance(layer, int):
+    elif layer_type == 'dense':
         return Dense(units=layer, activation=activation)
 
-    elif isinstance(layer, str) and layer.lower() in ['m', 'max', 'maxout', 'maxpool']:
+    elif layer_type == 'max':
         return MaxPool2D()
 
-    elif isinstance(layer, str) and layer.lower().startswith(('drop', 'dropout')):
+    elif layer_type == 'drop':
         if layer.lower().startswith('dropout'):
             return Dropout(rate=float(layer[7:]))
         else:

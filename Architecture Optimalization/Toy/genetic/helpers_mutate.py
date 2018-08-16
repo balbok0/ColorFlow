@@ -31,45 +31,33 @@ def add_layer(base_net, params):
         possible_layers['dense'] = random.choice(params['dense_size'])
     else:
         prev_layer = base_net.arch[layer_idx - 1]
+        prev_type = helpers.arch_type(prev_layer)
         next_layer = base_net.arch[layer_idx]
-        if hasattr(prev_layer, '__getitem__') and \
-                (not isinstance(prev_layer, str) or (isinstance(prev_layer, str) and prev_layer.startswith('max'))):
+
+        if prev_type in ['conv', 'max']:
             possible_layers['conv'] = (random.choice(params['kernel_size']), random.choice(params['conv_filters']))
-            if not (isinstance(prev_layer, str) or (isinstance(next_layer, str) and next_layer.startswith('max'))):
+            if not prev_type == 'max':
                 possible_layers['max'] = 'max'
 
-        check_if_flat = lambda x: isinstance(x, int) or (isinstance(x, str) and x.startswith('drop'))
+        check_if_flat = lambda x: helpers.arch_type(x) in ['dense', 'drop']
 
         if check_if_flat(next_layer):
             possible_layers['dense'] = random.choice(params['dense_size'])
-            if isinstance(next_layer, int) and check_if_flat(prev_layer) \
-                    and not (isinstance(prev_layer, str) and prev_layer.startswith('drop')):
+            if check_if_flat(prev_layer) and not prev_type == 'drop':
                 possible_layers['drop'] = 'drop' + str(random.choice(params['dropout']))
 
     layer_name = random.choice(possible_layers.values())
 
-    new_arch = base_net.arch[:layer_idx] + [layer_name] + base_net.arch[layer_idx:]
-
-    layer_idx += 1  # difference between net.arch and actual architecture. - First activation layer.
-    if isinstance(layer_name, int) or (isinstance(layer_name, str) and layer_name.startswith('drop')):
-        layer_idx += 1  # difference between net.arch and actual architecture. - Flatten layer.
-
-    return Network(
-        architecture=new_arch,
-        copy_model=helpers._insert_layer(base_net.model, helpers.arch_to_layer(layer_name, base_net.act), layer_idx),
-        opt=base_net.opt,
-        activation=base_net.act,
-        callbacks=base_net.callbacks
-    )
+    return _add_layer(base_net, layer_name, layer_idx)
 
 
-def __add_layer(base_net, layer_name, layer_idx):
+def _add_layer(base_net, layer_name, layer_idx):
     # type: (Network, Union[int, str, Tuple[Tuple[int], int]], int) -> Network
 
     new_arch = base_net.arch[:layer_idx] + [layer_name] + base_net.arch[layer_idx:]
 
     layer_idx += 1  # difference between net.arch and actual architecture. - First activation layer.
-    if isinstance(layer_name, int) or (isinstance(layer_name, str) and layer_name.startswith('drop')):
+    if helpers.arch_type(layer_name) in ['dense', 'drop']:
         layer_idx += 1  # difference between net.arch and actual architecture. - Flatten layer.
 
     return Network(
@@ -97,7 +85,7 @@ def remove_layer(base_net, params):
     new_arch = base_net.arch[:layer_idx] + base_net.arch[layer_idx + 1:]
 
     layer_idx += 1  # difference between net.arch and actual architecture. - First activation layer.
-    if isinstance(layer_name, int) or (isinstance(layer_name, str) and layer_name.startswith('drop')):
+    if helpers.arch_type(layer_name) in ['dense', 'drop']:
         layer_idx += 1  # difference between net.arch and actual architecture. - Flatten layer.
 
     return Network(
@@ -186,7 +174,7 @@ def add_conv_max(base_net, params, conv_num=3):
     max_idx = []
     idx = 1  # Since Activation layer is always first.
     for l in base_net.arch:
-        if isinstance(l, str) and l.startswith('max'):
+        if helpers.arch_type(l) == 'max':
             max_idx += [idx]
         idx += 1
 
@@ -253,7 +241,7 @@ def add_dense_drop(base_net, params):
     drop_idx = []
     idx = 0  # Since Activation layer is always first, and Flatten is before any Dropouts.
     for l in base_net.arch:
-        if isinstance(l, str) and l.startswith('drop'):
+        if helpers.arch_type(l) == 'drop':
             drop_idx += [idx]
         idx += 1
 
@@ -320,7 +308,7 @@ def remove_conv_max(base_net, params):
     max_idx = []
     idx = 0  # Since Activation layer is always first.
     for l in base_net.arch:
-        if isinstance(l, str) and l.startswith('max'):
+        if helpers.arch_type(l) == 'max':
             max_idx += [idx]
         idx += 1
 
@@ -370,7 +358,7 @@ def remove_dense_drop(base_net, params):
     drop_idx = []
     idx = 0  # Since Activation layer is always first, and Flatten is before any Dropouts.
     for l in base_net.arch:
-        if isinstance(l, str) and l.startswith('drop'):
+        if helpers.arch_type(l) == 'drop':
             drop_idx += [idx]
         idx += 1
 
@@ -396,7 +384,7 @@ def __remove_dense_drop(base_net, drop_idx):
         print('Layer before: {}'.format(new_arch[drop_idx - 1]))
         print('')
 
-    if isinstance(base_net.arch[drop_idx - 1], int):  # Previous layer is dense.
+    if helpers.arch_type(base_net.arch[drop_idx - 1]) == 'dense':  # Previous layer is dense.
         if const.deep_debug:
             print('remove_dense_drop - 1st path (layer before is dense)')
             print('')
@@ -404,20 +392,17 @@ def __remove_dense_drop(base_net, drop_idx):
         new_model = helpers._remove_layer(new_model, drop_idx + 1)
         new_arch = new_arch[:drop_idx-1] + new_arch[drop_idx+1:]
 
-    elif isinstance(base_net.arch[drop_idx - 1], str) and \
-            base_net.arch[drop_idx - 1].startswith('drop'):  # Previous layer is dropout.
+    elif helpers.arch_type(base_net.arch[drop_idx - 1]) == 'drop':  # Previous layer is dropout.
         if const.deep_debug:
             print('remove_dense_drop - 2nd path (layer before is drop)')
             print('')
         new_model = helpers._remove_layer(new_model, drop_idx + 2)
         new_model = helpers._remove_layer(new_model, drop_idx + 1)
         lay_before = 2
-        while isinstance(base_net.arch[drop_idx - lay_before], int) or \
-                (isinstance(base_net.arch[drop_idx - lay_before], str) and
-                 base_net.arch[drop_idx - lay_before].startswith('drop')):
+        while helpers.arch_type(base_net.arch[drop_idx - lay_before]) in ['dense', 'drop']:
             new_model = helpers._remove_layer(new_model, drop_idx + 2 - lay_before)
             lay_before += 1
-            if isinstance(base_net.arch[drop_idx - lay_before + 1], int):
+            if helpers.arch_type(base_net.arch[drop_idx - lay_before + 1]) == 'dense':
                 break
         new_arch = new_arch[:drop_idx - lay_before + 1] + new_arch[drop_idx + 1:]
     else:

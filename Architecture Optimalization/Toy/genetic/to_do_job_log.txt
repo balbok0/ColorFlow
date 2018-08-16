@@ -123,3 +123,7 @@ TODO: Remake the code for helpers/mutator/network, so that non-random injections
               2. Done for creating new Networks in Mutator.
     - It can help debug the Nan in loss bug, which is extremely hard to reproduce (2-6h for single reproduction)
     - Still need an idea on what to do with mutations, since they're random right now.
+
+TODO: When making a copy_model in Network, still check for a dropout as a second to last layer, and if needed, remove.
+
+TODO: When making a copy_model in Network, still check for a 2 maxpools in a row, and if needed, remove (CHANGE OF WEIGHTS SHAPE!!!).
