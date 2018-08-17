@@ -3,8 +3,8 @@ import copy
 import numpy as np
 from keras import optimizers
 from keras.callbacks import EarlyStopping, Callback
-from keras.layers import Activation, Dense, Flatten, Dropout, Conv2D, MaxPool2D, Layer
-from keras.models import Sequential, clone_model, Model
+from keras.layers import Activation, Dense, Flatten, Dropout, Conv2D, MaxPool2D
+from keras.models import Sequential, Model
 from typing import List, Dict, Union
 
 import helpers
@@ -142,14 +142,8 @@ class Network:
             self.model = Sequential()  # type: Sequential
             self.__create_model()
         else:
-            self.model = clone_model(copy_model)
-            self.model.set_weights(copy_model.get_weights())
-            if self.act != activation:
-                for l in self.model.layers[1:-1]:  # type: Layer
-                    if not isinstance(l, (Activation, MaxPool2D, Flatten, Dropout)):
-                        l.activation = helpers.activations_function_calls[activation]
-            self.model.compile(optimizer=self.opt, loss='categorical_crossentropy', metrics=['accuracy'])
-            assert helpers.assert_model_arch_match(copy_model, self.arch)
+            self.model = helpers.clone_model(copy_model, self.act, self.opt)
+            assert helpers.assert_model_arch_match(self.model, self.arch)
 
     @staticmethod
     def __optimizer(opt_name, lr=None):

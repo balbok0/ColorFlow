@@ -257,7 +257,10 @@ def assert_model_arch_match(model, arch):
                     print(arch)
                     print(arch_idx)
                     model.summary()
+                    for i in range(len(model.layers)):
+                        print('\t{}  {}'.format(i, model.layers[i].get_config()))
                     print(arch[arch_idx])
+                    print(layer_to_arch(l))
                     print(l.get_config())
                     print('')
                 return False
@@ -311,12 +314,6 @@ def _insert_layer(model, layer, index):
     for l in model_copy.layers[index:]:
         result.add(__clone_layer(l))
 
-    # Needed to clone weights.
-    weight_number_before = 0
-    for l in model_copy.layers[:index]:
-        weight_number_before += len(l.get_weights())
-    weight_number_after = weight_number_before + len(layer.get_weights()) + len(model_copy.layers[index].get_weights())
-
     if deep_debug:
         print('_insert layer')
         print('layer to be added {} at index {}'.format(layer, index))
@@ -328,6 +325,15 @@ def _insert_layer(model, layer, index):
         for i in result.get_weights():
             print('\t%d' % len(i))
         print('')
+
+    # Needed to clone weights.
+    weight_number_before = 0
+    for l in model_copy.layers[:index]:
+        weight_number_before += len(l.get_weights())
+
+    weight_number_after = weight_number_before + len(layer.get_weights())
+    if index < len(model_copy.layers):
+        weight_number_after += len(model_copy.layers[index].get_weights())
 
     if isinstance(layer, MaxPool2D):
         # MaxPool changes shape of the output, thus weights will not have the same shape.
@@ -381,8 +387,13 @@ def _insert_layer(model, layer, index):
                     print('\t%d' % len(i))
                 print('')
 
-            new_weights += model_copy.\
-                get_weights()[weight_number_before + len(model_copy.layers[index].get_weights()) + 1:]
+            if index >= len(model_copy.layers):
+                new_weights += model_copy.\
+                    get_weights()[weight_number_before + 1:]
+
+            else:
+                new_weights += model_copy.\
+                    get_weights()[weight_number_before + len(model_copy.layers[index].get_weights()) + 1:]
 
             if deep_debug:
                 print('new_weights (part 3) model weights shape:')
@@ -530,8 +541,25 @@ def layer_to_arch(layer):
     elif isinstance(layer, MaxPool2D):
         return ['max']
     elif isinstance(layer, Dropout):
-        return ['drop%.2g' % layer.get_config()['rate'], 'dropout%.2g' % layer.get_config()['rate']]
+        return ['drop%.2f' % layer.get_config()['rate'], 'dropout%.2f' % layer.get_config()['rate'],
+                'drop%.2g' % layer.get_config()['rate'], 'dropout%.2g' % layer.get_config()['rate']]
     elif isinstance(layer, Dense):
         return [layer.get_config()['units']]
     else:
         return [None]
+
+
+def clone_model(base_model, new_act, new_opt):
+    # type: (Model, str, Union[str, keras.optimizers.Optimizer]) -> keras.models.Sequential
+    model = keras.models.clone_model(base_model)
+    while isinstance(model.layers[-2], Dropout):
+        model = _remove_layer(model, len(model.layers) - 2)
+    model.set_weights(base_model.get_weights())
+
+    act = activations_function_calls[new_act]
+    for l in model.layers[1:-1]:  # type: Layer
+        if not isinstance(l, (Activation, MaxPool2D, Flatten, Dropout)) and not isinstance(l.activation, type(act)):
+            l.activation = act
+
+    model.compile(optimizer=new_opt, loss='categorical_crossentropy', metrics=['accuracy'])
+    return model

@@ -194,7 +194,7 @@ def __add_conv_max(base_net, idx, conv_num, conv_params):
     new_model = base_net.model
 
     new_arch = new_arch[:idx] + ['max'] + new_arch[idx:]
-    new_model = helpers._insert_layer(new_model, helpers.arch_to_layer('max', activation=base_net.act), idx)
+    new_model = helpers._insert_layer(new_model, helpers.arch_to_layer('max', activation=base_net.act), idx + 1)
 
     if const.debug:
         print('add_conv_max: outside for-loop')
@@ -250,7 +250,7 @@ def add_dense_drop(base_net, params):
 
     idx_add = random.choice(drop_idx)
     dense_params = random.choice(params['dense_size'])
-    drop_params = 'drop%0.2g' % random.choice(params['dropout'])
+    drop_params = 'drop%.2f' % random.choice(params['dropout'])
 
     return __add_dense_drop(base_net, idx_add, dense_params, drop_params)
 
@@ -260,12 +260,20 @@ def __add_dense_drop(base_net, idx, dense_params, drop_params):
     new_arch = base_net.arch
     new_model = base_net.model
 
-    new_arch = new_arch[:idx + 1] + [drop_params] + new_arch[idx + 1:]
-    new_model = helpers._insert_layer(
-        new_model,
-        helpers.arch_to_layer(drop_params, activation=base_net.act),
-        idx + 2
-    )
+    if idx >= len(new_arch):
+        new_arch = new_arch[:idx] + [drop_params] + new_arch[idx:]
+        new_model = helpers._insert_layer(
+            new_model,
+            helpers.arch_to_layer(drop_params, activation=base_net.act),
+            idx + 2
+        )
+    else:
+        new_arch = new_arch[:idx + 1] + [drop_params] + new_arch[idx + 1:]
+        new_model = helpers._insert_layer(
+            new_model,
+            helpers.arch_to_layer(drop_params, activation=base_net.act),
+            idx + 3
+        )
 
     if const.debug:
         print('add_dense_drop: after adding dropout')
@@ -274,12 +282,20 @@ def __add_dense_drop(base_net, idx, dense_params, drop_params):
         print('New arch: {}'.format(new_arch))
         print('')
 
-    new_arch = new_arch[:idx + 1] + [dense_params] + new_arch[idx + 1:]
-    new_model = helpers._insert_layer(
-        new_model,
-        helpers.arch_to_layer(dense_params, activation=base_net.act),
-        idx + 3
-    )
+    if idx >= len(base_net.arch):
+        new_arch = new_arch[:idx] + [dense_params] + new_arch[idx:]
+        new_model = helpers._insert_layer(
+            new_model,
+            helpers.arch_to_layer(dense_params, activation=base_net.act),
+            idx + 2
+        )
+    else:
+        new_arch = new_arch[:idx + 1] + [dense_params] + new_arch[idx + 1:]
+        new_model = helpers._insert_layer(
+            new_model,
+            helpers.arch_to_layer(dense_params, activation=base_net.act),
+            idx + 3
+        )
 
     if const.debug:
         print('add_dense_drop: at the end')
@@ -313,9 +329,17 @@ def remove_conv_max(base_net, params):
         idx += 1
 
     if not max_idx:
-        add_conv_max(base_net, params)
+        return add_conv_max(base_net, params)
 
-    curr_idx = random.randint(1, len(max_idx))
+    if len(max_idx) > 1:
+        curr_idx = random.randint(1, len(max_idx))
+    else:
+        curr_idx = 1
+
+    print('remove_conv_max')
+    print('\t')
+    print('\tmax_idx: {}'.format(max_idx))
+    print('\tcurr_idx: {}'.format(curr_idx - 1))
     end = max_idx[curr_idx - 1]
 
     if curr_idx == 1:
@@ -331,7 +355,7 @@ def __remove_conv_max(base_net, idx_start, idx_end):
 
     new_model = base_net.model
 
-    for i in range(idx_start, idx_end):
+    for i in range(idx_start, idx_end + 1):
         new_model = helpers._remove_layer(new_model, idx_start + 1)
 
     new_arch = base_net.arch[:idx_start] + base_net.arch[idx_end:]
@@ -363,9 +387,16 @@ def remove_dense_drop(base_net, params):
         idx += 1
 
     if not drop_idx:
-        add_dense_drop(base_net, params)
+        return add_dense_drop(base_net, params)
 
-    curr_idx = random.randint(1, len(drop_idx))
+    if len(drop_idx) > 1:
+        curr_idx = random.randint(1, len(drop_idx))
+    else:
+        curr_idx = 1
+    print('remove_dense_drop')
+    print('\tdrop_idx: {}'.format(drop_idx))
+    print('\t{}'.format(not drop_idx))
+    print('\tcurr_idx: {}'.format(curr_idx - 1))
     drop_arch_idx = drop_idx[curr_idx - 1]
 
     return __remove_dense_drop(base_net, drop_arch_idx)

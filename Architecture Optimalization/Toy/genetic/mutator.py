@@ -91,6 +91,8 @@ class __Mutator(object):
         log_save.print_message('Started a new job.')
 
         for i in range(generations):
+            if verbose > 0:
+                print('\n\nGeneration %d' % (i + 1))
 
             Network.prepare_data(dataset)
 
