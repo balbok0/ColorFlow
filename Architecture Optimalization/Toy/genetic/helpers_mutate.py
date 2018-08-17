@@ -171,15 +171,18 @@ def add_conv_max(base_net, params, conv_num=3):
     :return: Copy of given network, with additional sequence inserted in a position of maxpool layer,
                 or at the beginning of the model.
     """
-    max_idx = []
-    idx = 1  # Since Activation layer is always first.
+    max_idx = [0]
+    idx = 1
     for l in base_net.arch:
         if helpers.arch_type(l) == 'max':
             max_idx += [idx]
         idx += 1
 
-    if not max_idx:
-        max_idx = [1]
+    if const.debug:
+        print('')
+        print('add_conv_max')
+        print('max_idx: {}'.format(max_idx))
+        print('')
 
     idx_add = random.choice(max_idx)
     conv_params = (random.choice(params['kernel_size']), random.choice(params['conv_filters']))
@@ -188,7 +191,7 @@ def add_conv_max(base_net, params, conv_num=3):
 
 
 def __add_conv_max(base_net, idx, conv_num, conv_params):
-    # type: (Network, int, int, Tuple[Tuple[int], int]) -> Network
+    # type: (Network, int, int, Tuple[Tuple[int, int], int]) -> Network
 
     new_arch = base_net.arch
     new_model = base_net.model
@@ -197,7 +200,8 @@ def __add_conv_max(base_net, idx, conv_num, conv_params):
     new_model = helpers._insert_layer(new_model, helpers.arch_to_layer('max', activation=base_net.act), idx + 1)
 
     if const.debug:
-        print('add_conv_max: outside for-loop')
+        print('')
+        print('__add_conv_max: outside for-loop')
         print('Index of adding sequence: %d' % idx)
         print('Old arch: {}'.format(base_net.arch))
         print('New arch: {}'.format(new_arch))
@@ -206,7 +210,8 @@ def __add_conv_max(base_net, idx, conv_num, conv_params):
     for l in range(conv_num):
         new_arch = new_arch[:idx] + [conv_params] + new_arch[idx:]
         if const.debug:
-            print('add_conv_max: inside for-loop')
+            print('')
+            print('__add_conv_max: inside for-loop')
             print('New arch: {}'.format(new_arch))
             print('')
 
@@ -215,7 +220,8 @@ def __add_conv_max(base_net, idx, conv_num, conv_params):
         )
 
         if const.deep_debug:
-            print('add_conv_max: inside for-loop')
+            print('')
+            print('__add_conv_max: inside for-loop')
             new_model.summary()
             print('')
 
@@ -238,15 +244,18 @@ def add_dense_drop(base_net, params):
     :return: Copy of given network, with additional sequence inserted in a position of a random dropout layer,
                 or at the beginning of 1D computations in the model.
     """
-    drop_idx = []
+    drop_idx = [helpers.find_first_dense(base_net.model)[0] - 3]
     idx = 0  # Since Activation layer is always first, and Flatten is before any Dropouts.
     for l in base_net.arch:
         if helpers.arch_type(l) == 'drop':
             drop_idx += [idx]
         idx += 1
 
-    if not drop_idx:
-        drop_idx = [helpers.find_first_dense(base_net.model)[0] - 1]
+    if const.debug:
+        print('')
+        print('add_drop_dense')
+        print('drop_idx: {}'.format(drop_idx))
+        print('')
 
     idx_add = random.choice(drop_idx)
     dense_params = random.choice(params['dense_size'])
@@ -276,6 +285,7 @@ def __add_dense_drop(base_net, idx, dense_params, drop_params):
         )
 
     if const.debug:
+        print('')
         print('add_dense_drop: after adding dropout')
         print('Index of adding sequence: %d' % idx)
         print('Old arch: {}'.format(base_net.arch))
@@ -298,6 +308,7 @@ def __add_dense_drop(base_net, idx, dense_params, drop_params):
         )
 
     if const.debug:
+        print('')
         print('add_dense_drop: at the end')
         print('New arch: {}'.format(new_arch))
         print('')
@@ -336,10 +347,13 @@ def remove_conv_max(base_net, params):
     else:
         curr_idx = 1
 
-    print('remove_conv_max')
-    print('\t')
-    print('\tmax_idx: {}'.format(max_idx))
-    print('\tcurr_idx: {}'.format(curr_idx - 1))
+    if const.debug:
+        print('')
+        print('remove_conv_max')
+        print('\tmax_idx: {}'.format(max_idx))
+        print('\tcurr_idx: {}'.format(curr_idx - 1))
+        print('')
+
     end = max_idx[curr_idx - 1]
 
     if curr_idx == 1:
@@ -355,10 +369,31 @@ def __remove_conv_max(base_net, idx_start, idx_end):
 
     new_model = base_net.model
 
-    for i in range(idx_start, idx_end + 1):
-        new_model = helpers._remove_layer(new_model, idx_start + 1)
+    if idx_start == 0:
+        new_arch = base_net.arch[:idx_start] + base_net.arch[idx_end + 1:]
 
-    new_arch = base_net.arch[:idx_start] + base_net.arch[idx_end:]
+    else:
+        new_arch = base_net.arch[:idx_start] + base_net.arch[idx_end:]
+
+    if const.debug:
+        print('')
+        print('__remove_conv_max')
+        print('\told arch: {}'.format(base_net.arch))
+        print('\tnew arch: {}'.format(new_arch))
+        print('\tidx_start: {}'.format(idx_start))
+        print('\tidx_end: {}'.format(idx_end))
+        print('')
+
+    if idx_start == 0:
+        idx_start = -1  # Edge case
+
+    for i in range(idx_start, idx_end):
+        if const.debug:
+            print('')
+            print('__remove_conv_max')
+            print('\t layer tb removed: {}'.format(base_net.arch[i + 1]))
+            print('')
+        new_model = helpers._remove_layer(new_model, idx_start + 1)
 
     return Network(
         architecture=new_arch,
@@ -393,10 +428,7 @@ def remove_dense_drop(base_net, params):
         curr_idx = random.randint(1, len(drop_idx))
     else:
         curr_idx = 1
-    print('remove_dense_drop')
-    print('\tdrop_idx: {}'.format(drop_idx))
-    print('\t{}'.format(not drop_idx))
-    print('\tcurr_idx: {}'.format(curr_idx - 1))
+
     drop_arch_idx = drop_idx[curr_idx - 1]
 
     return __remove_dense_drop(base_net, drop_arch_idx)
@@ -408,15 +440,17 @@ def __remove_dense_drop(base_net, drop_idx):
     new_model = base_net.model
     new_arch = base_net.arch
 
-    if const.deep_debug:
-        print('remove_dense_drop')
+    if const.debug:
+        print('')
+        print('__remove_dense_drop')
         print('Index of drop layer in arch: {}'.format(drop_idx))
         print('Drop layer: {}'.format(new_arch[drop_idx]))
         print('Layer before: {}'.format(new_arch[drop_idx - 1]))
         print('')
 
     if helpers.arch_type(base_net.arch[drop_idx - 1]) == 'dense':  # Previous layer is dense.
-        if const.deep_debug:
+        if const.debug:
+            print('')
             print('remove_dense_drop - 1st path (layer before is dense)')
             print('')
         new_model = helpers._remove_layer(new_model, drop_idx + 2)
@@ -424,7 +458,8 @@ def __remove_dense_drop(base_net, drop_idx):
         new_arch = new_arch[:drop_idx-1] + new_arch[drop_idx+1:]
 
     elif helpers.arch_type(base_net.arch[drop_idx - 1]) == 'drop':  # Previous layer is dropout.
-        if const.deep_debug:
+        if const.debug:
+            print('')
             print('remove_dense_drop - 2nd path (layer before is drop)')
             print('')
         new_model = helpers._remove_layer(new_model, drop_idx + 2)
@@ -437,7 +472,8 @@ def __remove_dense_drop(base_net, drop_idx):
                 break
         new_arch = new_arch[:drop_idx - lay_before + 1] + new_arch[drop_idx + 1:]
     else:
-        if const.deep_debug:
+        if const.debug:
+            print('')
             print('remove_dense_drop - 3rd path (layer before is something else)')
             print('')
         new_model = helpers._remove_layer(new_model, drop_idx + 2)

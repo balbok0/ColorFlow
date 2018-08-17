@@ -124,8 +124,11 @@ TODO: Remake the code for helpers/mutator/network, so that non-random injections
     - It can help debug the Nan in loss bug, which is extremely hard to reproduce (2-6h for single reproduction)
     - Still need an idea on what to do with mutations, since they're random right now.
 
-TODO: BUG!! When making a copy_model in Network, still check for a dropout as a second to last layer, and if needed, remove.
+16-17/08: BUG!! When making a copy_model in Network, still check for a dropout as a second to last layer, and if needed, remove.
+    - Done, created a wrap around method in helpers for cloning the model. Also added a constraint for 2 dropout in a row.
 
 TODO: BUG!! When making a copy_model in Network, still check for a 2 maxpools in a row, and if needed, remove (CHANGE OF WEIGHTS SHAPE!!!).
 
 16-17/08: BUG. Edge case with __insert_layer, with dropouts and dense layers being inserted at the end. Made an error with assert model and arch match.
+
+17/08: Updated test file, to make it easier to add new tests. Also added all tests for private mutation methods.

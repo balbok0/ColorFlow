@@ -350,11 +350,12 @@ def _insert_layer(model, layer, index):
                     isinstance(model_copy.layers[index+1], Flatten)):
             _, first_dense = find_first_dense(result)
 
-            print('_insert_layer if path chosen')
-            print('new_weights (part 1) model weights shape:')
-            for i in new_weights:
-                print('\t%d' % len(i))
-            print('')
+            if deep_debug:
+                print('_insert_layer if path chosen')
+                print('new_weights (part 1) model weights shape:')
+                for i in new_weights:
+                    print('\t%d' % len(i))
+                print('')
 
             new_weights += result.get_weights()[weight_number_before:first_dense + 1]  # New weights, shape changed.
 
@@ -552,14 +553,23 @@ def layer_to_arch(layer):
 def clone_model(base_model, new_act, new_opt):
     # type: (Model, str, Union[str, keras.optimizers.Optimizer]) -> keras.models.Sequential
     model = keras.models.clone_model(base_model)
+    act = activations_function_calls[new_act]
+
     while isinstance(model.layers[-2], Dropout):
         model = _remove_layer(model, len(model.layers) - 2)
-    model.set_weights(base_model.get_weights())
 
-    act = activations_function_calls[new_act]
+    prev = None
+    idx = 1
     for l in model.layers[1:-1]:  # type: Layer
-        if not isinstance(l, (Activation, MaxPool2D, Flatten, Dropout)) and not isinstance(l.activation, type(act)):
-            l.activation = act
+        if isinstance(prev, (MaxPool2D, Dropout)) and isinstance(prev, type(l)):
+            model = _remove_layer(model, idx)
+        else:
+            prev = l
+            idx += 1
+            if not isinstance(l, (Activation, MaxPool2D, Flatten, Dropout)) and not isinstance(l.activation, type(act)):
+                l.activation = act
+
+    model.set_weights(base_model.get_weights())
 
     model.compile(optimizer=new_opt, loss='categorical_crossentropy', metrics=['accuracy'])
     return model
