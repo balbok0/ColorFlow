@@ -64,7 +64,7 @@ TODO: Check the size of the training dataset: https://github.com/36000/cnn_color
     Note for future:
         Basically using relu with cross_entropy doesn't work, since 0 is not in domain of cross_entropy, but in range of relu.
         Thus, even though the last activation was tanh, the problem was 0, appearing sometimes in the range of nn(since 0 -> 0 in tanh).
-        Use SIGMOID whenever possible as last activation of nn, whenever possible.
+        Use SIGMOID as activation in last layer of nn, whenever possible.
 
 TODO: Bug. Nan in loss. Now in middle of the epoch. Maybe something with divergent optimizer.
     Nets:
@@ -103,6 +103,14 @@ TODO: Split helper methods based on what they are helping with. Maybe even make 
     - 14/08 - comments on all of helpers/get_file_names/log_save. However, added private helpers for helpers_mutate, which won't have comments.
 
 TODO: Instead of having random mutation, make a mutation depended on two parents, and make random choices based on them. Or combine it and use both (random and parents version).
+    - 17-18/08 - 1. Implemented and tested. Works, however is purely deterministic,
+                        which may be a problem with a specific net propagating through
+                        generations and overtaking population, with no randomness at all.
+                 2. Now supports only 2 parents, but should be relatively simple to generalize
+                        it to n parents through diagonal multi-parent crossover
+                        (section 2.3 of https://www.cs.vu.nl/~gusz/papers/PPSN1994-GAs-with-multiparent.pdf).
+                 3. This adds only hyper-parameter to this program,
+                        which was meant to minimize # of choices by a human.
     - generalize it to n parent mutation?
     - can it be deterministic, or still somewhat random?
 
@@ -127,7 +135,8 @@ TODO: Remake the code for helpers/mutator/network, so that non-random injections
 16-17/08: BUG!! When making a copy_model in Network, still check for a dropout as a second to last layer, and if needed, remove.
     - Done, created a wrap around method in helpers for cloning the model. Also added a constraint for 2 dropout in a row.
 
-TODO: BUG!! When making a copy_model in Network, still check for a 2 maxpools in a row, and if needed, remove (CHANGE OF WEIGHTS SHAPE!!!).
+17/08: When making a copy_model in Network, still check for a 2 maxpools in a row, and if needed, remove (CHANGE OF WEIGHTS SHAPE!!!).
+    - Done. Slightly modified bug above, and added support for maxpools, not only dropouts.
 
 16-17/08: BUG. Edge case with __insert_layer, with dropouts and dense layers being inserted at the end. Made an error with assert model and arch match.
 

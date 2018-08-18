@@ -60,6 +60,13 @@ def _add_layer(base_net, layer_name, layer_idx):
     if helpers.arch_type(layer_name) in ['dense', 'drop']:
         layer_idx += 1  # difference between net.arch and actual architecture. - Flatten layer.
 
+    if const.debug:
+        print('')
+        print('_add_layer')
+        print('Old arch: {}'.format(base_net.arch))
+        print('New arch: {}'.format(new_arch))
+        print('')
+
     return Network(
         architecture=new_arch,
         copy_model=helpers._insert_layer(base_net.model, helpers.arch_to_layer(layer_name, base_net.act), layer_idx),

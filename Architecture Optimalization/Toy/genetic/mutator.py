@@ -6,6 +6,7 @@ import numpy as np
 from keras import Model
 from typing import List, Dict
 
+import helpers
 import helpers_mutate
 import log_save
 from network import Network
@@ -136,10 +137,34 @@ class __Mutator(object):
                     scores.popitem(last=False)
 
                 self.networks = scores.keys()
-                new_nets = []
+                p = np.exp(scores.values())
+                p = np.divide(p, sum(p))
 
-                for net in self.networks:
-                    new_nets.append(self.__mutate(net))
+                new_nets = []
+                called_pairs = []  # type: List[List[Network, Network]]
+
+                tmp_p = p
+                tmp_nets = self.networks
+
+                for _ in range((population_size - len(self.networks))/2):
+                    pair = np.random.choice(tmp_nets, size=2, replace=False, p=tmp_p)
+                    for i_pair in called_pairs:
+                        print('\n\n\n\n\n')
+                        print(i_pair)
+                        print(pair)
+                        if pair == i_pair:
+                            for j in pair:
+                                idx = tmp_p[tmp_nets.index(j)]
+                                tmp_p = tmp_p[:idx] + tmp_p[idx:]
+                                tmp_nets = tmp_nets[:j] + tmp_nets[idx:]
+                            tmp_p = np.divide(p, sum(p))
+                            _ -= 1
+
+                    else:
+                        called_pairs += [pair, pair[::-1]]
+                        new_nets += self.__mutate(pair[0], pair[1])
+                        tmp_p = p
+                        tmp_nets = self.networks
 
                 for net in new_nets:
                     self.networks.append(net)
@@ -208,7 +233,77 @@ class __Mutator(object):
             lr=random.choice(self.params.get('optimizer_lr')), activation=random.choice(self.params.get('activation'))
         )
 
-    def __mutate(self, base_net, change_number_cap=3):
+    def __mutate(self, base_net_1, base_net_2, change_number_cap=3):
+        # type: (Network, Network, int) -> List[Network]
+        """
+        Creates and returns two new Networks, based on passed in parent Networks.
+
+        :param base_net_1: A first parent network on which mutation is based.
+        :param base_net_2: A second parent network on which mutation is based.
+        :param change_number_cap: Cap number of a random changes in case of random mutations.
+        :return: List of 2 Networks, which are based on passed in parent Networks.
+        """
+
+        if random.random() < const.parent_to_rand_chance:
+            return [
+                self.__mutate_random(base_net_1, change_number_cap),
+                self.__mutate_random(base_net_2, change_number_cap)
+            ]
+
+        else:
+            return self._mutate_parent(base_net_1, base_net_2)
+
+    def _mutate_parent(self, base_net_1, base_net_2):
+        # type: (Network, Network) -> List[Network]
+        """
+        Creates two new Networks, both based on combination of given parents.
+
+        :param base_net_1: A first parent network on which mutation is based.
+        :param base_net_2: A second parent network on which mutation is based.
+        :return: List of 2 Networks, both of which have features of both parent Networks.
+        """
+        dense_idx_1 = helpers.find_first_dense(base_net_1.model)[0] - 2
+        dense_idx_2 = helpers.find_first_dense(base_net_2.model)[0] - 2
+
+        conv_1 = Network(
+            architecture=base_net_1.arch[:dense_idx_1],
+            opt=base_net_2.opt,
+            activation=base_net_2.act,
+            callbacks=base_net_2.callbacks
+        )
+
+        drop_to_add = {}
+
+        for l in base_net_2.arch[dense_idx_2:]:
+            if helpers.arch_type(l) == 'drop':
+                drop_to_add[len(conv_1.arch) + len(drop_to_add.keys())] = l
+            else:
+                conv_1 = helpers_mutate._add_layer(conv_1, l, len(conv_1.arch))
+
+        for i, l in drop_to_add.items():
+            conv_1 = helpers_mutate._add_layer(conv_1, l, i)
+
+        conv_2 = Network(
+            architecture=base_net_2.arch[:dense_idx_2],
+            opt=base_net_1.opt,
+            activation=base_net_1.act,
+            callbacks=base_net_1.callbacks
+        )
+
+        drop_to_add = {}
+
+        for l in base_net_1.arch[dense_idx_1:]:
+            if helpers.arch_type(l) == 'drop':
+                drop_to_add[len(conv_2.arch) + len(drop_to_add.keys())] = l
+            else:
+                conv_2 = helpers_mutate._add_layer(conv_2, l, len(conv_2.arch))
+
+        for i, l in drop_to_add.items():
+            conv_2 = helpers_mutate._add_layer(conv_2, l, i)
+
+        return [conv_1, conv_2]
+
+    def __mutate_random(self, base_net, change_number_cap=3):
         # type: (Network, int) -> Network
         """
         Given a network, returns a new Network, with a random number of mutations (capped at given number).
