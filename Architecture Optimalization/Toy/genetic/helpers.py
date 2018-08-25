@@ -12,7 +12,7 @@ from scipy import interp
 from sklearn.metrics import roc_curve, auc
 from typing import Dict, List, Tuple, Union
 
-from program_variables.program_params import deep_debug
+from program_variables.program_params import debug, deep_debug
 
 Array_Type = Union[HDF5Matrix, np.ndarray]
 
@@ -250,8 +250,6 @@ def assert_model_arch_match(model, arch):
             arch_idx -= 1
         else:
             if not arch[arch_idx] in layer_to_arch(l):
-                from program_variables.program_params import debug
-
                 if debug:
                     print('assert_model_arch_match:')
                     print(arch)

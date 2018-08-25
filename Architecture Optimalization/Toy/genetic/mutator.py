@@ -27,15 +27,12 @@ class __Mutator(object):
 
         :param params: A dictionary of choices which can modify the network.
         """
-        if params is None:
-            params = const.mutations
-
-        else:
+        if params is not None:
+            const.mutations.fset(params)
             for i in ['kernel_size', 'conv_filers', 'dropout', 'dense_size', 'optimizer', 'optimizer_lr', 'activation']:
                 assert i in list(params.keys()), "There should be %s in params keys." % i
                 assert isinstance(params[i], list), "Key %s should be pointing to the list." % i
 
-        self.params = params  # type: Dict[str, List]
         self.networks = []  # type: List[Network]
 
     def get_best_architecture(
@@ -83,10 +80,11 @@ class __Mutator(object):
                 self.networks = starting_population[:]
                 for i in range(len(starting_population), population_size):
                     self.networks.append(self.__create_random_model())
-        for i in range(population_size):
-            self.networks.append(self.__create_random_model())
+        else:
+            for i in range(population_size):
+                self.networks.append(self.__create_random_model())
 
-        scores = []  # Needed to suppress warnings.
+        scores = {}  # Needed to suppress warnings.
 
         log_save.print_message('')
         log_save.print_message('Started a new job.')
@@ -131,43 +129,7 @@ class __Mutator(object):
             best_net.save(file_path='{dir}net_{num:03d}.h5'.format(dir=saving_dir, num=i + 1))
 
             if not i + 1 == generations:
-
-                # Remove bottom half of population.
-                for _ in range(int(population_size / 2)):
-                    scores.popitem(last=False)
-
-                self.networks = scores.keys()
-                p = np.exp(scores.values())
-                p = np.divide(p, sum(p))
-
-                new_nets = []
-                called_pairs = []  # type: List[List[Network, Network]]
-
-                tmp_p = p
-                tmp_nets = self.networks
-
-                for _ in range((population_size - len(self.networks))/2):
-                    pair = np.random.choice(tmp_nets, size=2, replace=False, p=tmp_p)
-                    for i_pair in called_pairs:
-                        print('\n\n\n\n\n')
-                        print(i_pair)
-                        print(pair)
-                        if pair == i_pair:
-                            for j in pair:
-                                idx = tmp_p[tmp_nets.index(j)]
-                                tmp_p = tmp_p[:idx] + tmp_p[idx:]
-                                tmp_nets = tmp_nets[:j] + tmp_nets[idx:]
-                            tmp_p = np.divide(p, sum(p))
-                            _ -= 1
-
-                    else:
-                        called_pairs += [pair, pair[::-1]]
-                        new_nets += self.__mutate(pair[0], pair[1])
-                        tmp_p = p
-                        tmp_nets = self.networks
-
-                for net in new_nets:
-                    self.networks.append(net)
+                self.__evolve_networks(scores, population_size)
 
         best = scores.popitem()
         best_score = best[1]
@@ -188,6 +150,50 @@ class __Mutator(object):
         )
         return best_net.model
 
+    def __evolve_networks(self, scores, population_size):
+        # type: (collections.OrderedDict[Network, float], int) -> None
+        """
+        Modifies list of networks in such a way, that bottom half is removed,
+        and new networks are added instead of them, all based on networks from top half.
+
+        :param scores: An OrderedDict, which points from the network to its score.
+        :param population_size: Size, which population of networks should have at the end.
+        """
+
+        # Remove bottom half of population.
+        for _ in range(int(population_size / 2)):
+            scores.popitem(last=False)
+
+        self.networks = scores.keys()
+        p = np.exp(scores.values())
+        p = np.divide(p, sum(p))
+
+        new_nets = []
+        called_pairs = []  # type: List[List[Network, Network]]
+
+        tmp_p = p
+        tmp_nets = self.networks
+
+        for _ in range((population_size - len(self.networks)) / 2):
+            pair = np.random.choice(tmp_nets, size=2, replace=False, p=tmp_p)
+            for i_pair in called_pairs:
+                if pair == i_pair:
+                    for j in pair:
+                        idx = tmp_p[tmp_nets.index(j)]
+                        tmp_p = tmp_p[:idx] + tmp_p[idx:]
+                        tmp_nets = tmp_nets[:j] + tmp_nets[idx:]
+                    tmp_p = np.divide(p, sum(p))
+                    _ -= 1
+
+            else:
+                called_pairs += [pair, pair[::-1]]
+                new_nets += self.__mutate(pair[0], pair[1])
+                tmp_p = p
+                tmp_nets = self.networks
+
+        for net in new_nets:
+            self.networks.append(net)
+
     def __create_random_model(self):
         # type: (__Mutator) -> Network
         """
@@ -195,43 +201,42 @@ class __Mutator(object):
 
         :return: Random Network, with a random architecture, optimizers, etc.
         """
-        architecture = [(random.choice(self.params['kernel_size']),
-                         random.choice(self.params['conv_filters']))]
+        architecture = [(random.choice(const.mutations.fget()['kernel_size']),
+                         random.choice(const.mutations.fget()['conv_filters'])),
+                        random.choice(const.mutations.fget()['dense_size'])]
 
-        n_layers = 1  # since there's always at least one dense layer.
+        net = Network(
+            architecture=architecture,
+            opt=random.choice(const.mutations.fget()['optimizer']),
+            lr=random.choice(const.mutations.fget()['optimizer_lr']),
+            activation=random.choice(const.mutations.fget()['activation'])
+        )
 
-        # Two variables for probability of:
-        #   r_min - adding any new layer,
-        #   r_mid - distinguishing between two types of layers for each part of arch.
-        r_min = .33
-        r_mid = .66
+        n_layers = 2  # since there's always at least one conv, dense layer.
+        n_weights = helpers.get_number_of_weights(net.model)
+
+        # r_min - adding any new sequence.,
+        r_min = .5
 
         # Convolution/Maxout part of architecture
         r = random.random()
-        while r > r_min and n_layers < const.max_depth:
-            r = random.random()
-            if r > r_mid:
-                architecture.append('max')
-            else:
-                architecture.append(
-                    (random.choice(self.params.get('kernel_size')), random.choice(self.params.get('conv_filters'))))
+        while (r > r_min and n_layers < const.max_depth != 0 and n_weights < const.max_n_weights != 0) \
+                or n_layers < const.min_depth != 0:
+            net = helpers_mutate.add_conv_max(net)
+            n_layers = len(net.arch)
+            n_weights = helpers.get_number_of_weights(net.model)
             r = random.random()
 
         # Dense/Dropout part of architecture
-        architecture.append(random.choice(self.params.get('dense_size')))
         r = random.random()
-        while r > r_min and n_layers < const.max_depth:
-            r = random.random()
-            if r > r_mid:
-                architecture.append('drop%.2f' % random.choice(self.params.get('dropout')))
-            else:
-                architecture.append(random.choice(self.params.get('dense_size')))
+        while (r > r_min and n_layers < const.max_depth != 0 and n_weights < const.max_n_weights != 0) \
+                or n_layers < const.min_depth != 0:
+            net = helpers_mutate.add_dense_drop(net)
+            n_layers = len(net.arch)
+            n_weights = helpers.get_number_of_weights(net.model)
             r = random.random()
 
-        return Network(
-            architecture=architecture, opt=random.choice(self.params.get('optimizer')),
-            lr=random.choice(self.params.get('optimizer_lr')), activation=random.choice(self.params.get('activation'))
-        )
+        return net
 
     def __mutate(self, base_net_1, base_net_2, change_number_cap=3):
         # type: (Network, Network, int) -> List[Network]
@@ -312,8 +317,6 @@ class __Mutator(object):
         :param change_number_cap: Maximal number of changes.
         :return: A new, mutated Network.
         """
-        if self.params == {}:
-            raise Exception('Mutator not initialized.')
 
         possible_changes = [
             helpers_mutate.add_dense_drop,
@@ -334,7 +337,7 @@ class __Mutator(object):
             n_of_changes = change_number_cap
 
         for i in range(n_of_changes):
-            base_net = np.random.choice(possible_changes, p=probabilities)(base_net, self.params)
+            base_net = np.random.choice(possible_changes, p=probabilities)(base_net)
 
         return base_net
 
