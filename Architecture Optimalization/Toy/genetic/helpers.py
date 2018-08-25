@@ -12,7 +12,7 @@ from scipy import interp
 from sklearn.metrics import roc_curve, auc
 from typing import Dict, List, Tuple, Union
 
-from program_variables.program_params import debug, deep_debug
+import program_variables.program_params as const
 
 Array_Type = Union[HDF5Matrix, np.ndarray]
 
@@ -95,14 +95,13 @@ def get_memory_size(hdf5_data_set, n_samples=None):
     return n_samples * first.size * first.itemsize
 
 
-def __get_masks(x_shape, y, n_train):
-    # type: (Tuple[int], np.ndarray, int) -> (np.ndarray, np.ndarray)
+def __get_masks(x_shape, y):
+    # type: (Tuple[int], np.ndarray) -> (np.ndarray, np.ndarray)
     """
     Creates masks, which choose n_train random images after applying a mask.
 
     :param x_shape: Shape of x dataset (images).
     :param y: True classes corresponding to images of dataset, which shape is given in x_shape.
-    :param n_train: Size which dataset should have after applying a mask.
     :return: Two masks, first one for x part of dataset (images), another for y part of dataset (classes)
     """
 
@@ -118,7 +117,9 @@ def __get_masks(x_shape, y, n_train):
 
     # Ratios split the whole dataset to ratios given class and first class.
     # Part scales these ratios up, so that, 'part' corresponds to size of first class.
-    part = n_train * 1. / sum(ratios)
+    part = const.n_train * 1. / sum(ratios)
+    if part == 0:  # n_train is 0.
+        part = len(y) * 1. / sum(ratios)
 
     # Masks of what to keep.
     indexes_x = np.full(shape=x_shape, fill_value=False, dtype=bool)
@@ -199,15 +200,13 @@ def prepare_data(dataset_name='colorflow', first_time=True):
         # Data loading
         with h5.File(fname) as hf:
             # Cap of training images (approximately).
-            n_train = 500
-
             memory_cost = 122 * 4  # Buffer for creating np array
-            memory_cost += get_memory_size(hf['train/x'], n_train)
+            memory_cost += get_memory_size(hf['train/x'], const.n_train)
+            memory_cost += 2 * get_memory_size(hf['train/y'], const.n_train)
             memory_cost += get_memory_size(hf['val/x'])
             memory_cost += 2 * get_memory_size(hf['val/y'])
-            memory_cost += 2 * get_memory_size(hf['train/y'], n_train)
 
-            indexes_x, indexes_y = __get_masks(hf['train/x'].shape, hf['train/y'][()], n_train)
+            indexes_x, indexes_y = __get_masks(hf['train/x'].shape, hf['train/y'][()])
 
         if memory_cost < psutil.virtual_memory()[1]:  # available memory
             with h5.File(fname) as hf:
@@ -250,7 +249,7 @@ def assert_model_arch_match(model, arch):
             arch_idx -= 1
         else:
             if not arch[arch_idx] in layer_to_arch(l):
-                if debug:
+                if const.debug:
                     print('assert_model_arch_match:')
                     print(arch)
                     print(arch_idx)
@@ -312,7 +311,7 @@ def _insert_layer(model, layer, index):
     for l in model_copy.layers[index:]:
         result.add(__clone_layer(l))
 
-    if deep_debug:
+    if const.deep_debug:
         print('_insert layer')
         print('layer to be added {} at index {}'.format(layer, index))
         print('base model weights shape:')
@@ -348,7 +347,7 @@ def _insert_layer(model, layer, index):
                     isinstance(model_copy.layers[index+1], Flatten)):
             _, first_dense = find_first_dense(result)
 
-            if deep_debug:
+            if const.deep_debug:
                 print('_insert_layer if path chosen')
                 print('new_weights (part 1) model weights shape:')
                 for i in new_weights:
@@ -357,7 +356,7 @@ def _insert_layer(model, layer, index):
 
             new_weights += result.get_weights()[weight_number_before:first_dense + 1]  # New weights, shape changed.
 
-            if deep_debug:
+            if const.deep_debug:
                 print('new_weights (part 2) model weights shape:')
                 for i in new_weights:
                     print('\t%d' % len(i))
@@ -365,13 +364,13 @@ def _insert_layer(model, layer, index):
 
             new_weights += model_copy.get_weights()[first_dense - 1:]  # Back to old shape, since Dense resets it.
 
-            if deep_debug:
+            if const.deep_debug:
                 print('new_weights (part 3) model weights shape:')
                 for i in new_weights:
                     print('\t%d' % len(i))
                 print('')
         else:
-            if deep_debug:
+            if const.deep_debug:
                 print('_insert_layer else path chosen')
                 print('new_weights (part 1) model weights shape:')
                 for i in new_weights:
@@ -380,7 +379,7 @@ def _insert_layer(model, layer, index):
 
             new_weights += result.get_weights()[weight_number_before:weight_number_after + 1]
 
-            if deep_debug:
+            if const.deep_debug:
                 print('new_weights (part 2) model weights shape:')
                 for i in new_weights:
                     print('\t%d' % len(i))
@@ -394,7 +393,7 @@ def _insert_layer(model, layer, index):
                 new_weights += model_copy.\
                     get_weights()[weight_number_before + len(model_copy.layers[index].get_weights()) + 1:]
 
-            if deep_debug:
+            if const.deep_debug:
                 print('new_weights (part 3) model weights shape:')
                 for i in new_weights:
                     print('\t%d' % len(i))
@@ -431,7 +430,7 @@ def _remove_layer(model, index):
     for l in model_copy.layers[(index+1):]:
         result.add(__clone_layer(l))
 
-    if deep_debug:
+    if const.deep_debug:
         print('_remove_layer')
         print('layer to be removed at index {}'.format(index))
         print('base model weights shape:')

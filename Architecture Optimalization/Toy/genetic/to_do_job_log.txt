@@ -151,3 +151,10 @@ TODO: Improve the two parent mutation, so that it is somewhat random.
 
 22/08: Implement sequences in creating new network.
     - Done, because of the beginning, each network starts with one random conv layer and one random dense layer.
+
+TODO: Make 2/3 modes of data loading:
+    - in chunks - where not all training data is loaded. (as currently)
+    - all       - where all data is loaded.
+    - CAN BE DONE THROUGH SETTING n_layers (and migrating it to program_params)
+
+TODO: When copying over conv-max seq, make sure that the weights of the seqs, are kept. In __parent_mutation.

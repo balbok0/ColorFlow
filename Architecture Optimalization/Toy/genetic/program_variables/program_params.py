@@ -1,4 +1,7 @@
 # Network parameters
+"""
+- When any of them is set to 0, then this boundary is ignored.
+"""
 max_n_weights = 7500000
 max_depth = 10
 min_depth = 3
@@ -31,6 +34,9 @@ def mutations(val):
 # Above this threshold mutations are parent ones, below are random. Range is (0, 1). Used in Mutator.
 # If set to 1, all mutations are random. If set to 0, all mutations are parent.
 parent_to_rand_chance = 0.6667
+
+# Dataset variables
+n_train = 50000
 
 # Development variables
 debug = True

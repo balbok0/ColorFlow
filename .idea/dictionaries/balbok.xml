@@ -10,6 +10,7 @@
       <w>conv</w>
       <w>convs</w>
       <w>dataset</w>
+      <w>fname</w>
       <w>fprs</w>
       <w>keras</w>
       <w>matplotlib</w>
@@ -22,6 +23,7 @@
       <w>pseudorapidity</w>
       <w>pythia</w>
       <w>reco</w>
+      <w>relu</w>
       <w>rmsprop</w>
       <w>skyblue</w>
       <w>standad</w>
