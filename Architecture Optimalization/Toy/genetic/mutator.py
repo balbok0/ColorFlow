@@ -110,7 +110,7 @@ class __Mutator(object):
                 if best_net is None or tmp_scores[net] > tmp_scores[best_net]:
                     best_net = net
 
-            scores = collections.OrderedDict(sorted(tmp_scores.items(), key=lambda t: t[1]))
+            scores = collections.OrderedDict(tmp_scores)
 
             printing = {
                 0: 'Generation {gen}. Best network scored: {score}'.format(gen=i + 1, score=scores[best_net]),
@@ -164,8 +164,8 @@ class __Mutator(object):
         for _ in range(int(population_size / 2)):
             scores.popitem(last=False)
 
-        self.networks = scores.keys()
-        p = np.exp(scores.values())
+        self.networks = list(scores.keys())
+        p = np.exp(list(scores.values()))
         p = np.divide(p, sum(p))
 
         new_nets = []
@@ -174,22 +174,25 @@ class __Mutator(object):
         tmp_p = p
         tmp_nets = self.networks
 
-        for _ in range((population_size - len(self.networks)) / 2):
-            pair = np.random.choice(tmp_nets, size=2, replace=False, p=tmp_p)
-            for i_pair in called_pairs:
-                if pair == i_pair:
-                    for j in pair:
-                        idx = tmp_p[tmp_nets.index(j)]
-                        tmp_p = tmp_p[:idx] + tmp_p[idx:]
-                        tmp_nets = tmp_nets[:j] + tmp_nets[idx:]
-                    tmp_p = np.divide(p, sum(p))
-                    _ -= 1
+        for _ in range(int((population_size - len(self.networks)) / 2)):
+            if len(tmp_nets) >= 2:
+                pair = np.random.choice(tmp_nets, size=2, replace=False, p=tmp_p)
+                for i_pair in called_pairs:
+                    if pair == i_pair:
+                        for j in pair:
+                            idx = tmp_p[tmp_nets.index(j)]
+                            tmp_p = tmp_p[:idx] + tmp_p[idx:]
+                            tmp_nets = tmp_nets[:j] + tmp_nets[idx:]
+                        tmp_p = np.divide(p, sum(p))
+                        _ -= 1
 
-            else:
-                called_pairs += [pair, pair[::-1]]
-                new_nets += self.__mutate(pair[0], pair[1])
-                tmp_p = p
-                tmp_nets = self.networks
+                else:
+                    called_pairs += [pair, pair[::-1]]
+                    new_nets += self.__mutate(pair[0], pair[1])
+            elif tmp_nets:
+                new_nets += [self.__mutate_random(tmp_nets[0])]
+            tmp_p = p
+            tmp_nets = self.networks
 
         for net in new_nets:
             self.networks.append(net)

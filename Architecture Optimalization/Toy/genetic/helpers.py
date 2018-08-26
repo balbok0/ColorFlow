@@ -231,6 +231,10 @@ def prepare_data(dataset_name='colorflow', first_time=True):
     else:
         raise AttributeError('Invalid name of dataset.')
 
+    const.input_dim.fset(len(x_train.shape[1:]))
+    if const.input_dim.fget() < 3:
+        const.max_layers_limit.fset(int(np.log2(len(x_train.shape[1]))))
+
     return (x_train, y_train), (x_val, y_val)
 
 
@@ -457,8 +461,8 @@ def _remove_layer(model, index):
         new_weights += model_copy.get_weights()[first_dense + 1:]
     else:
         new_weights = model_copy.get_weights()[:weight_number_before]
-        new_weights += result.get_weights()[weight_number_before:weight_number_after - (layer_weight_width / 2)]
-        new_weights += model_copy.get_weights()[weight_number_after + (layer_weight_width / 2):]
+        new_weights += result.get_weights()[weight_number_before:int(weight_number_after - (layer_weight_width / 2))]
+        new_weights += model_copy.get_weights()[int(weight_number_after + (layer_weight_width / 2)):]
 
     result.set_weights(new_weights)
     return result

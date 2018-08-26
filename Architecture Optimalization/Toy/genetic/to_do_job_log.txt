@@ -6,6 +6,7 @@ TODO: Momentum as a parameter (READ: how they behave/conserve in keras with one-
     - Not using, one-by-one epoch calls anymore, due to learning decay as parameter.
     - Since, different opt algorithms have different key-words for momentum (ex. beta_1, beta_2, momentum),
     how should I handle it?
+        - That would require totally new dict for these parameters.
     - maybe get_config() -> from config().
     - Need to read more about how Optimizers work in keras, but they basically keep their config throughout the epochs
         - Maybe there's a field which keeps epoch count.
@@ -14,7 +15,8 @@ TODO: Momentum as a parameter (READ: how they behave/conserve in keras with one-
     - Used Learning rate scheduler: still needs to change some it in __mutate in __Mutator.
 
 TODO: Check the size of the training dataset: https://github.com/36000/cnn_colorflow/blob/master/lcurve.py
-    - Need to clone from John.
+    - Need to clone from John
+    - 25/08 - Cloned, and tried to run it. Got to talk with John, about file, because cannot really understand it.
 
 22/06: Create log file support, instead of printing to console:
     - Done, prints to do bottom of the file.
@@ -158,3 +160,5 @@ TODO: Make 2/3 modes of data loading:
     - CAN BE DONE THROUGH SETTING n_layers (and migrating it to program_params)
 
 TODO: When copying over conv-max seq, make sure that the weights of the seqs, are kept. In __parent_mutation.
+
+TODO: BUG! Make a smart limit for number of maxpools. (Make a support for 1-D input too, by making flag inp_dim?)

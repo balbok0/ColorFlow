@@ -32,7 +32,7 @@ def check_nans():
 def check_add_conv_max_seq():
     from helpers_mutate import add_conv_max
     n2 = Network(architecture=[((3, 3), 32), 'max', ((4, 4), 32), ((4, 4), 32), 'max', 30, 30, 'drop0.4', 10])
-    print(add_conv_max(n2, m.params, 3).arch)
+    print(add_conv_max(n2, 3).arch)
 
 
 def check_priv_add_conv_max_seq():
@@ -46,9 +46,9 @@ def check_priv_add_conv_max_seq():
 def check_add_dense_drop_seq():
     from helpers_mutate import add_dense_drop
     n2 = Network(architecture=[((3, 3), 32), ((3, 3), 32), ((3, 3), 32), 'max', 30, 'drop0.4', 10])
-    print(add_dense_drop(n2, m.params).arch)
+    print(add_dense_drop(n2).arch)
     n2 = Network(architecture=[((7, 7), 16), 'max', 128])
-    print(add_dense_drop(n2, m.params).arch)
+    print(add_dense_drop(n2).arch)
 
 
 def check_priv_add_dense_drop_seq():
@@ -65,7 +65,7 @@ def check_rmv_conv_max_seq():
     n2 = Network(architecture=[
         ((3, 3), 32), 'max', ((5, 5), 32), ((5, 5), 32), 'max', ((4, 4), 32), ((4, 4), 32), 'max', 10, 'drop0.2', 10
     ])
-    print(remove_conv_max(n2, m.params).arch)
+    print(remove_conv_max(n2).arch)
 
 
 def check_priv_rmv_conv_max_seq():
@@ -83,7 +83,7 @@ def check_rmv_dense_drop_seq():
     n2 = Network(architecture=[
         ((3, 3), 32), 'max', ((3, 3), 32), ((3, 3), 32), 'max', 10, 'drop0.2', 20, 'drop0.3', 10
     ])
-    print(remove_dense_drop(n2, m.params).arch)
+    print(remove_dense_drop(n2).arch)
 
 
 def check_priv_dense_drop_seq():
@@ -99,12 +99,13 @@ def main():
     """
     Always calls all the functions in this file, in alphabetical order. Does not call itself.
     """
-    import sys, inspect
+    import sys
+    import inspect
 
     current_module = sys.modules[__name__]
     all_functions = inspect.getmembers(current_module, inspect.isfunction)
     for key, value in all_functions:
-        if inspect.getargspec(value)[0] == [] and not key == 'main':
+        if inspect.getfullargspec(value).args == [] and not key == 'main':
             print('\n\n\n\nNEW TEST\n\n')
             print('%s start' % key)
             value()

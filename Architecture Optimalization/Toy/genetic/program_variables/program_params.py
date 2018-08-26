@@ -1,7 +1,11 @@
+"""
+All variables which start with '_' are properties.
+However, all property functions are hidden at the bottom of the file.
+"""
+
+
 # Network parameters
-"""
-- When any of them is set to 0, then this boundary is ignored.
-"""
+# When any of them is set to 0, then this boundary is ignored.
 max_n_weights = 7500000
 max_depth = 10
 min_depth = 3
@@ -19,6 +23,46 @@ _mutations = {
                 'activation': ['relu', 'sigmoid', 'tanh']
             }
 
+# Above this threshold mutations are parent ones, below are random. Range is (0, 1). Used in Mutator.
+# If set to 1, all mutations are random. If set to 0, all mutations are parent.
+parent_to_rand_chance = 0.6667
+
+
+# Dataset variables
+n_train = 50000
+
+
+# Development variables
+debug = False
+deep_debug = False
+
+
+# Auto-params. DO NOT CHANGE
+_max_limit = 0
+_input_dim = 0
+
+
+@property
+def max_layers_limit() -> int:
+    return _max_limit
+
+
+@max_layers_limit.setter
+def max_layers_limit(val: int):
+    global _max_limit
+    _max_limit = val
+
+
+@property
+def input_dim() -> int:
+    return _input_dim
+
+
+@input_dim.setter
+def input_dim(val: int):
+    global _input_dim
+    _input_dim = val
+
 
 @property
 def mutations():
@@ -29,15 +73,3 @@ def mutations():
 def mutations(val):
     global _mutations
     _mutations = val
-
-
-# Above this threshold mutations are parent ones, below are random. Range is (0, 1). Used in Mutator.
-# If set to 1, all mutations are random. If set to 0, all mutations are parent.
-parent_to_rand_chance = 0.6667
-
-# Dataset variables
-n_train = 50000
-
-# Development variables
-debug = True
-deep_debug = False
