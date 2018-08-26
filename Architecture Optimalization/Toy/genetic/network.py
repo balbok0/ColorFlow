@@ -12,6 +12,9 @@ from program_variables.program_params import debug
 
 
 class Network:
+    """
+    A wrapper class around :ref:`Model<keras.engine.training.Model>`.
+    """
     (__x_train, __y_train), (__x_val, __y_val) = (None, None), (None, None)
 
     default_callbacks = [EarlyStopping(patience=5)]  # type: List[Callback]

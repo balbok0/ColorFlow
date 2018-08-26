@@ -111,14 +111,17 @@ TODO: Split helper methods based on what they are helping with. Maybe even make 
 
 TODO: Improve the two parent mutation, so that it is somewhat random.
     1. Instead of having random mutation, make a mutation depended on two parents, and make random choices based on them. Or combine it and use both (random and parents version).
-        - 17-18/08 -1. Implemented and tested. Works, however is purely deterministic,
-                        which may be a problem with a specific net propagating through
-                        generations and overtaking population, with no randomness at all.
-                    2. Now supports only 2 parents, but should be relatively simple to generalize
-                        it to n parents through diagonal multi-parent crossover
-                        (section 2.3 of https://www.cs.vu.nl/~gusz/papers/PPSN1994-GAs-with-multiparent.pdf).
-                    3. This adds only one hyper-parameter to this program,
-                        which was meant to minimize # of choices by a human. So that's good.
+        - 17-18/08 -    1. Implemented and tested. Works, however is purely deterministic,
+                            which may be a problem with a specific net propagating through
+                            generations and overtaking population, with no randomness at all.
+                        2. Now supports only 2 parents, but should be relatively simple to generalize
+                            it to n parents through diagonal multi-parent crossover
+                            (section 2.3 of https://www.cs.vu.nl/~gusz/papers/PPSN1994-GAs-with-multiparent.pdf).
+                        3. This adds only one hyper-parameter to this program,
+                            which was meant to minimize # of choices by a human. So that's good.
+                        TODO: 4. Make use of weights from the model which gives the conv_max_seq, and ones after dense_drop
+    2. Created a second, much more random version of a parent mutation, however copying weights cannot be supported.
+        - 26/08 - 1. Only sequences are copied, not whole halves of networks.
     - generalize it to n parent mutation?
     - can it be deterministic, or still somewhat random?
 
@@ -159,7 +162,9 @@ TODO: Make 2/3 modes of data loading:
     - all       - where all data is loaded.
     - CAN BE DONE THROUGH SETTING n_layers (and migrating it to program_params)
 
-TODO: When copying over conv-max seq, make sure that the weights of the seqs, are kept. In __parent_mutation.
+TODO: When copying over conv-max seq, make sure that the weights of the seqs, are kept. In _parent_mutation.
+    - 26/08 - Done in parent mutation
 
 TODO: BUG! Make a smart limit for number of maxpools. (Make a support for 1-D input too, by making flag inp_dim?)
-    - 25/08 - Made 2 properties, one for # of dimensions of input, one for maximal number of maxpool layers.
+    - 25/08 - 1. Made 2 properties, one for # of dimensions of input, one for maximal number of maxpool layers.
+        TODO: 2. In order to add support for 1-D input prepare_data has to be modified.

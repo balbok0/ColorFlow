@@ -19,7 +19,6 @@ It wraps __Mutator class!!!
 
 
 class __Mutator(object):
-
     def __init__(self, params=None):
         # type: (__Mutator, Dict[str, List]) -> None
         """
@@ -284,46 +283,110 @@ class __Mutator(object):
         :param base_net_2: A second parent network on which mutation is based.
         :return: List of 2 Networks, both of which have features of both parent Networks.
         """
-        dense_idx_1 = helpers.find_first_dense(base_net_1.model)[0] - 2
-        dense_idx_2 = helpers.find_first_dense(base_net_2.model)[0] - 2
+        dense_idx_1, weight_idx_1 = helpers.find_first_dense(base_net_1.model)
+        dense_idx_2, weight_idx_2 = helpers.find_first_dense(base_net_2.model)
+        dense_idx_1 -= 2
+        dense_idx_2 -= 2
 
         conv_1 = Network(
-            architecture=base_net_1.arch[:dense_idx_1],
+            architecture=base_net_1.arch[:dense_idx_1] + base_net_2.arch[dense_idx_2:],
             opt=base_net_2.opt,
             activation=base_net_2.act,
             callbacks=base_net_2.callbacks
         )
 
-        drop_to_add = {}
-
-        for l in base_net_2.arch[dense_idx_2:]:
-            if helpers.arch_type(l) == 'drop':
-                drop_to_add[len(conv_1.arch) + len(drop_to_add.keys())] = l
-            else:
-                conv_1 = helpers_mutate._add_layer(conv_1, l, len(conv_1.arch))
-
-        for i, l in drop_to_add.items():
-            conv_1 = helpers_mutate._add_layer(conv_1, l, i)
-
         conv_2 = Network(
-            architecture=base_net_2.arch[:dense_idx_2],
+            architecture=base_net_2.arch[:dense_idx_2] + base_net_1.arch[dense_idx_1:],
             opt=base_net_1.opt,
             activation=base_net_1.act,
             callbacks=base_net_1.callbacks
         )
 
-        drop_to_add = {}
-
-        for l in base_net_1.arch[dense_idx_1:]:
-            if helpers.arch_type(l) == 'drop':
-                drop_to_add[len(conv_2.arch) + len(drop_to_add.keys())] = l
-            else:
-                conv_2 = helpers_mutate._add_layer(conv_2, l, len(conv_2.arch))
-
-        for i, l in drop_to_add.items():
-            conv_2 = helpers_mutate._add_layer(conv_2, l, i)
-
+        conv_1.model.set_weights(
+            base_net_1.model.get_weights()[:dense_idx_1] + conv_1.model.get_weights()[dense_idx_1:]
+        )
+        conv_2.model.set_weights(
+            base_net_2.model.get_weights()[:dense_idx_2] + conv_2.model.get_weights()[dense_idx_2:]
+        )
         return [conv_1, conv_2]
+
+    def _mutate_parent_2(self, base_net_1, base_net_2):
+        # type: (Network, Network) -> List[Network]
+        """
+        Creates two new Networks, both based on combination of given parents.
+        More random than :ref:`main _mutate_parent<mutator.__Mutator#_mutate_parent>`.
+
+        :param base_net_1: A first parent network on which mutation is based.
+        :param base_net_2: A second parent network on which mutation is based.
+        :return: List of 2 Networks, both of which have features of both parent Networks.
+        """
+        new_nets = []
+        for _ in range(2):
+            max_seq_start_idx = 0
+            drop_seq_start_idx = helpers.find_first_dense(base_net_2.model)[0] - 2
+            idx = 0
+            max_seq_idx = []
+            drop_seq_idx = []
+
+            for l in base_net_1.arch:
+                if helpers.arch_type(l) == 'max':
+                    max_seq_idx.append((0, max_seq_start_idx, idx))
+                    max_seq_start_idx = idx + 1
+                elif helpers.arch_type(l) == 'drop':
+                    drop_seq_idx.append((0, drop_seq_start_idx, idx))
+                    drop_seq_start_idx = idx + 1
+                idx += 1
+
+            n_max_seq = [len(max_seq_idx)]
+            n_drop_seq = [len(drop_seq_idx)]
+
+            idx = 0
+            max_seq_start_idx = 0
+            drop_seq_start_idx = helpers.find_first_dense(base_net_2.model)[0] - 2
+
+            for l in base_net_2.arch:
+                if helpers.arch_type(l) == 'max':
+                    max_seq_idx.append((1, max_seq_start_idx, idx))
+                    max_seq_start_idx = idx + 1
+                elif helpers.arch_type(l) == 'drop':
+                    drop_seq_idx.append((1, drop_seq_start_idx, idx))
+                    drop_seq_start_idx = idx + 1
+                idx += 1
+
+            n_max_seq = random.choice(n_max_seq + [len(max_seq_idx) - n_max_seq[0], int(len(max_seq_idx) / 2)])
+            n_drop_seq = random.choice(n_drop_seq + [len(drop_seq_idx) - n_drop_seq[0], int(len(drop_seq_idx) / 2)])
+
+            archs = [base_net_1.arch, base_net_2.arch]
+            new_arch = []
+            tmp = np.random.choice(len(max_seq_idx), size=n_max_seq, replace=False)
+            max_idxs = []
+            for i in tmp:
+                max_idxs += [max_seq_idx[i]]
+            tmp = np.random.choice(len(drop_seq_idx), size=n_drop_seq, replace=False)
+            drop_idxs = []
+            for i in tmp:
+                drop_idxs += [drop_seq_idx[i]]
+
+            print('Arch 1: {}'.format(base_net_1.arch))
+            print('Arch 2: {}'.format(base_net_2.arch))
+            print('Max_idxs: {}'.format(max_idxs))
+            print('Drop_idxs: {}'.format(drop_idxs))
+
+            for i in max_idxs:
+                a = archs[i[0]]
+                new_arch += a[i[1]:i[2] + 1]
+
+            for i in drop_idxs:
+                a = archs[i[0]]
+                new_arch += a[i[1]:i[2] + 1]
+
+            new_nets += [Network(
+                architecture=new_arch,
+                callbacks=random.choice([base_net_1.callbacks, base_net_2.callbacks]),
+                opt=random.choice([base_net_1.opt, base_net_2.opt]),
+                activation=random.choice([base_net_1.act, base_net_2.act]),
+            )]
+        return new_nets
 
     def __mutate_random(self, base_net, change_number_cap=3):
         # type: (Network, int) -> Network

@@ -276,9 +276,9 @@ def find_first_dense(model):
     Finds an index of first dense layer in a given model.
 
     :param model: A model in which index of the first dense layer is to be found.
-    :return: Tuple containing two ints:
-                    (index of first dense layer in layer count, index of first dense layer in weights count).
-                    Returns (None, None) if no dense layer exisits in the model.
+    :return: Tuple containing two ints: <br>
+               (index of first dense layer in layer count, index of first dense layer in weights count). <br>
+               Returns (None, None) if no dense layer exisits in the model.
     """
     layer_idx = 0
     weight_idx = 0

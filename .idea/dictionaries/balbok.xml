@@ -4,6 +4,7 @@
       <w>adadelta</w>
       <w>adagrad</w>
       <w>adamax</w>
+      <w>archs</w>
       <w>aucs</w>
       <w>cifar</w>
       <w>colorflow</w>
@@ -12,6 +13,7 @@
       <w>dataset</w>
       <w>fname</w>
       <w>fprs</w>
+      <w>idxs</w>
       <w>keras</w>
       <w>matplotlib</w>
       <w>maxout</w>

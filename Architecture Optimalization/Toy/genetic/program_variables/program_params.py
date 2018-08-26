@@ -37,11 +37,15 @@ debug = False
 deep_debug = False
 
 
+# ----------------------------------------------------------------------------------------
+
+
 # Auto-params. DO NOT CHANGE
 _max_limit = 0
 _input_dim = 0
 
 
+# Properties. DO NOT CHANGE.
 @property
 def max_layers_limit() -> int:
     return _max_limit
