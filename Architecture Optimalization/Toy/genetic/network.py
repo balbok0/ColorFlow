@@ -228,7 +228,7 @@ class Network:
         if f is None:
             f = helpers.multi_roc_score
 
-        args = inspect.getargspec(f)[0]
+        args = inspect.getfullargspec(f).args
         if not ('y_true' in args and 'y_score' in args):
             raise AttributeError('Given function f, should have parameters y_true and y_score.')
 

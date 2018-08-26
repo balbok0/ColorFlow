@@ -162,3 +162,4 @@ TODO: Make 2/3 modes of data loading:
 TODO: When copying over conv-max seq, make sure that the weights of the seqs, are kept. In __parent_mutation.
 
 TODO: BUG! Make a smart limit for number of maxpools. (Make a support for 1-D input too, by making flag inp_dim?)
+    - 25/08 - Made 2 properties, one for # of dimensions of input, one for maximal number of maxpool layers.

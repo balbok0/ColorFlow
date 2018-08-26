@@ -232,8 +232,8 @@ def prepare_data(dataset_name='colorflow', first_time=True):
         raise AttributeError('Invalid name of dataset.')
 
     const.input_dim.fset(len(x_train.shape[1:]))
-    if const.input_dim.fget() < 3:
-        const.max_layers_limit.fset(int(np.log2(len(x_train.shape[1]))))
+    if const.input_dim.fget() >= 2:
+        const.max_layers_limit.fset(int(np.log2(x_train.shape[1])))
 
     return (x_train, y_train), (x_val, y_val)
 
@@ -481,8 +481,29 @@ def __clone_layer(layer):
     return type(layer).from_config(layer.get_config())
 
 
+def can_add_max_number(arch):
+    # type: (List[str, int, Tuple, List]) -> bool
+    """
+    Returns whether MaxPool can be added to Network represented with such arch.
+
+    :param arch: Representation of Network.
+    :return: True, if adding a MaxPool layer is legal, False otherwise.
+    """
+    n = 0
+    for i in arch:
+        if arch_type(i) == 'max':
+            n += 1
+    return n < const.max_layers_limit.fget()
+
+
 def arch_type(layer):
-    # type: (object) -> str
+    # type: (Union[List, str, int, Tuple]) -> str
+    """
+    Given arch description of layer, returns str representation of it's type.
+
+    :param layer: Arch representation of layer.
+    :return: String type of that layer.
+    """
     if hasattr(layer, '__getitem__') and not isinstance(layer, str):
         return 'conv'
 

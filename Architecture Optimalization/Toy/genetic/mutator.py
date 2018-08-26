@@ -112,15 +112,25 @@ class __Mutator(object):
 
             scores = collections.OrderedDict(tmp_scores)
 
+            config = best_net.get_config()
+
             printing = {
                 0: 'Generation {gen}. Best network scored: {score}'.format(gen=i + 1, score=scores[best_net]),
                 1: 'Generation {gen}. Best network, with architecture: {arch}, optimizer {opt}, and activation '
                    'function {act}. It\'s score is {score}.'.format(
-                    gen=i + 1, arch=best_net.arch, opt=best_net.opt, act=best_net.act, score=scores[best_net]
+                    gen=i + 1,
+                    arch=config['architecture'],
+                    opt=config['optimizer'],
+                    act=config['activation'],
+                    score=scores[best_net]
                 ),
                 2: 'Generation {gen}. Best network, with architecture: {arch}, optimizer {opt}, and activation '
                    'function {act}. It\'s score is {score}.'.format(
-                    gen=i + 1, arch=best_net.arch, opt=best_net.opt, act=best_net.act, score=scores[best_net]
+                    gen=i + 1,
+                    arch=config['architecture'],
+                    opt=config['optimizer'],
+                    act=config['activation'],
+                    score=scores[best_net]
                 )
             }
             log_save.print_message(printing[verbose])
@@ -204,9 +214,12 @@ class __Mutator(object):
 
         :return: Random Network, with a random architecture, optimizers, etc.
         """
-        architecture = [(random.choice(const.mutations.fget()['kernel_size']),
-                         random.choice(const.mutations.fget()['conv_filters'])),
-                        random.choice(const.mutations.fget()['dense_size'])]
+        if const.input_dim.fget() < 3:
+            architecture = [random.choice(const.mutations.fget()['dense_size'])]
+        else:
+            architecture = [(random.choice(const.mutations.fget()['kernel_size']),
+                            random.choice(const.mutations.fget()['conv_filters'])),
+                            random.choice(const.mutations.fget()['dense_size'])]
 
         net = Network(
             architecture=architecture,
@@ -221,14 +234,15 @@ class __Mutator(object):
         # r_min - adding any new sequence.,
         r_min = .5
 
-        # Convolution/Maxout part of architecture
-        r = random.random()
-        while (r > r_min and n_layers < const.max_depth != 0 and n_weights < const.max_n_weights != 0) \
-                or n_layers < const.min_depth != 0:
-            net = helpers_mutate.add_conv_max(net)
-            n_layers = len(net.arch)
-            n_weights = helpers.get_number_of_weights(net.model)
+        if const.input_dim.fget() >= 3:
+            # Convolution/Maxout part of architecture
             r = random.random()
+            while (r > r_min and n_layers < const.max_depth != 0 and n_weights < const.max_n_weights != 0) \
+                    or n_layers < const.min_depth != 0:
+                net = helpers_mutate.add_conv_max(net)
+                n_layers = len(net.arch)
+                n_weights = helpers.get_number_of_weights(net.model)
+                r = random.random()
 
         # Dense/Dropout part of architecture
         r = random.random()

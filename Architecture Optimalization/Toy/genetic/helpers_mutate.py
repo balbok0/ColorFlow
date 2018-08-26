@@ -38,7 +38,7 @@ def add_layer(base_net):
         if prev_type in ['conv', 'max']:
             possible_layers['conv'] = (random.choice(const.mutations.fget()['kernel_size']),
                                        random.choice(const.mutations.fget()['conv_filters']))
-            if not prev_type == 'max':
+            if not prev_type == 'max' and helpers.can_add_max_number(base_net.arch):
                 possible_layers['max'] = 'max'
 
         check_if_flat = lambda x: helpers.arch_type(x) in ['dense', 'drop']
@@ -177,6 +177,12 @@ def add_conv_max(base_net, conv_num=3):
     :return: Copy of given network, with additional sequence inserted in a position of maxpool layer,
                 or at the beginning of the model.
     """
+    if const.input_dim.fget() < 3:
+        return add_dense_drop(base_net)
+
+    if not helpers.can_add_max_number(base_net.arch):
+        return remove_conv_max(base_net)
+
     max_idx = [0]
     idx = 1
     for l in base_net.arch:
@@ -337,6 +343,9 @@ def remove_conv_max(base_net):
     :param base_net: A Network, which copy, with mutations, will be returned.
     :return: A Network, based on base_net, but with a sequence of Conv layers and a MaxOut layer removed.
     """
+    if const.input_dim.fget() < 3:
+        return remove_dense_drop(base_net)
+
     max_idx = []
     idx = 0  # Since Activation layer is always first.
     for l in base_net.arch:
