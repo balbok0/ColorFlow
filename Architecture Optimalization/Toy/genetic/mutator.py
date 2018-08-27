@@ -6,8 +6,7 @@ import numpy as np
 from keras import Model
 from typing import List, Dict
 
-import helpers
-import helpers_mutate
+from helpers import helpers, helpers_mutate
 import log_save
 from network import Network
 from program_variables import program_params as const
@@ -56,7 +55,8 @@ class __Mutator(object):
         :param dataset: Dataset to which neural network should be optimized.
         :return: Keras Model of neural network, which was the best in last generation, with already trained weights.
         """
-        Network.prepare_data(dataset)
+        from helpers.helpers_data import prepare_data
+        prepare_data(dataset)
 
         if saving_dir is None:
             from program_variables.file_loc_vars import models_saving_dir
@@ -92,7 +92,7 @@ class __Mutator(object):
             if verbose > 0:
                 print('\n\nGeneration %d' % (i + 1))
 
-            Network.prepare_data(dataset)
+            prepare_data(dataset, first_time=False)
 
             log_save.print_message('Starting training for generation %d' % (i + 1))
 

@@ -1,5 +1,5 @@
 # Input, user modifiable
-basic_dir = '/home/balbok/Documents/Research/ColorFlow/Data/'
+basic_dir = '/home/balbok/Documents/Research/ColorFlow/Data/'  # Place of main data dir.
 
 
 # Output, user modifiable

@@ -78,8 +78,16 @@ TODO: Bug. Nan in loss. Now in middle of the epoch. Maybe something with diverge
             optimizer   : Nadam, 0.001
             activation  : relu
             callbacks   : EarlyStopping/default
+        2 (26/08):
+            architecture: [((5, 5), 16), ((5, 5), 16), ((5, 5), 16), 'max', ((5, 5), 16), 64, 'drop0.70', 64, 'drop0.70', 64]
+            optimizer   : Nadam, 0.001
+            activation  : relu
+            callbacks   : EarlyStopping/default
     - As of 22/08 it never happened after around 1/08, which hints that it is an extremely rare bug,
         and may be connected to something that I already fixed on a way, or some bug in keras.
+    - 26/08: Seems that it is not something with Nadam, with lr 0.001, but in need of investigation that.
+            - Not related to input data, as exactly same data sometimes results in nans, and sometimes does not
+            - Thus, it is probably, how weights are initialized.
 
 17/07: Investigate why dropout at the end of arch is legal. It's shouldn't be.
     - Done, added 'or j == len(architecture) - 1' in __init__ of network. Also added a test, in the test_network.

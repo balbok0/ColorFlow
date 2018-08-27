@@ -7,7 +7,7 @@ from keras.layers import Activation, Dense, Flatten, Dropout, Conv2D, MaxPool2D
 from keras.models import Sequential, Model
 from typing import List, Dict, Union
 
-import helpers
+from helpers import helpers
 from program_variables.program_params import debug
 
 
@@ -17,25 +17,18 @@ class Network:
     """
     (__x_train, __y_train), (__x_val, __y_val) = (None, None), (None, None)
 
-    default_callbacks = [EarlyStopping(patience=5)]  # type: List[Callback]
-
     @staticmethod
-    def prepare_data(dataset_name='colorflow'):
-        """
-        Prepares data with a given name, loads it to memory. and points variables to it. Possible arguments are:
-            - colorflow
-            - cifar
-            - mnist
-            - testing.
+    def _set_dataset(data):
+        if len(data[0]) == 2:
+            Network.__x_train = data[0][0]
+            Network.__x_val = data[1][0]
+            Network.__y_train = data[0][1]
+            Network.__y_val = data[1][1]
+        elif len(data) == 2:
+            Network.__x_train = data[0]
+            Network.__y_train = data[1]
 
-        :param dataset_name: Name of dataset to be used.
-        """
-        if Network.__x_val is None or Network.__y_val is None:
-            (Network.__x_train, Network.__y_train), (Network.__x_val, Network.__y_val) = \
-                helpers.prepare_data(dataset_name=dataset_name)
-        else:
-            (Network.__x_train, Network.__y_train), (_, __) = \
-                helpers.prepare_data(dataset_name=dataset_name, first_time=False)
+    default_callbacks = [EarlyStopping(patience=5)]  # type: List[Callback]
 
     def __init__(self, architecture, copy_model=None, opt='adam', lr=None, activation='relu', callbacks=None):
         # type: (Network, List, Model, Union[str, optimizers.Optimizer], float, str, List[Callback]) -> None
@@ -155,7 +148,7 @@ class Network:
         Given a name and learning rate returns a keras optimizer based on it.
 
         :param opt_name: Name of optimizer to use.
-                Legal arguments are:\n
+                Legal arguments are:
                 #. adam
                 #. nadam
                 #. rmsprop
@@ -210,12 +203,15 @@ class Network:
         self.__prev_weights = copy.deepcopy(self.model.get_weights())
         self.__score = 0.  # Resets score, so it will not collide w/ scoring it again (but w/ different weights).
         if Network.__x_train is None or Network.__x_val is None or Network.__y_train is None or Network.__y_val is None:
-            Network.prepare_data()
+            from helpers.helpers_data import prepare_data
+            prepare_data()
         if debug:
             print(self.get_config())
         self.model.fit(
             x=Network.__x_train, y=Network.__y_train, epochs=epochs, batch_size=batch_size, shuffle=shuffle,
-            callbacks=self.callbacks, validation_data=(Network.__x_val, Network.__y_val), verbose=verbose
+            callbacks=self.callbacks,
+            validation_data=(Network.__x_val, Network.__y_val),
+            verbose=verbose
         )
 
     def score(self, f=None):
