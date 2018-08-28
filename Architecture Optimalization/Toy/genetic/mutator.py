@@ -302,11 +302,18 @@ class __Mutator(object):
             callbacks=base_net_1.callbacks
         )
 
-        conv_1.model.set_weights(
-            base_net_1.model.get_weights()[:dense_idx_1] + conv_1.model.get_weights()[dense_idx_1:]
+        conv_1.model.set_weights(  # Set Conv-Max weights
+            base_net_1.model.get_weights()[:weight_idx_1] + conv_1.model.get_weights()[weight_idx_1:]
         )
-        conv_2.model.set_weights(
-            base_net_2.model.get_weights()[:dense_idx_2] + conv_2.model.get_weights()[dense_idx_2:]
+        conv_1.model.set_weights(  # Set Dense-Drop weights
+            conv_1.model.get_weights()[:weight_idx_1 + 1] + base_net_2.model.get_weights()[weight_idx_2 + 1:]
+        )
+
+        conv_2.model.set_weights(  # Set Conv-Max weights
+            base_net_2.model.get_weights()[:weight_idx_2] + conv_2.model.get_weights()[weight_idx_2:]
+        )
+        conv_2.model.set_weights(  # Set Dense-Drop weights
+            conv_2.model.get_weights()[:weight_idx_2 + 1] + base_net_1.model.get_weights()[weight_idx_1 + 1:]
         )
         return [conv_1, conv_2]
 
@@ -366,11 +373,6 @@ class __Mutator(object):
             drop_idxs = []
             for i in tmp:
                 drop_idxs += [drop_seq_idx[i]]
-
-            print('Arch 1: {}'.format(base_net_1.arch))
-            print('Arch 2: {}'.format(base_net_2.arch))
-            print('Max_idxs: {}'.format(max_idxs))
-            print('Drop_idxs: {}'.format(drop_idxs))
 
             for i in max_idxs:
                 a = archs[i[0]]

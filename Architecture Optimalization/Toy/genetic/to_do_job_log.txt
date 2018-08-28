@@ -166,17 +166,16 @@ TODO: Improve the two parent mutation, so that it is somewhat random.
 22/08: Implement sequences in creating new network.
     - Done, because of the beginning, each network starts with one random conv layer and one random dense layer.
 
-TODO: Make 2/3 modes of data loading:
-    - in chunks - where not all training data is loaded. (as currently)
-    - all       - where all data is loaded.
-    - CAN BE DONE THROUGH SETTING n_layers (and migrating it to program_params)
+28/08: Make 2/3 modes of data loading:
+    - Done. If n_layers set to 0, then prepare data will just set whole dataset as x,y.
 
 TODO: When copying over conv-max seq, make sure that the weights of the seqs, are kept. In _parent_mutation.
     - 26/08 - Done in parent mutation
 
-TODO: BUG! Make a smart limit for number of maxpools. (Make a support for 1-D input too, by making flag inp_dim?)
-    - 25/08 - 1. Made 2 properties, one for # of dimensions of input, one for maximal number of maxpool layers.
-        TODO: 2. In order to add support for 1-D input prepare_data has to be modified.
+25/08: Make a smart limit for number of maxpools.
+    - Made 2 properties, one for # of dimensions of input, one for maximal number of maxpool layers.
+
+TODO: Make a support for 1-D input too. (by making flag inp_dim?) In order to add support for 1-D input prepare_data has to be modified.
 
 TODO: Limit number of things printed under debug (make a third mode of debugging? or move some things into deep_debug)
 

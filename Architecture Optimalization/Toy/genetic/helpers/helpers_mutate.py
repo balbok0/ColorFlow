@@ -222,21 +222,17 @@ def __add_conv_max(base_net, idx, conv_num, conv_params):
 
     for l in range(conv_num):
         new_arch = new_arch[:idx] + [conv_params] + new_arch[idx:]
-        if const.debug:
+
+        if const.deep_debug:
             print('')
             print('__add_conv_max: inside for-loop')
+            print(new_model.layers)
             print('New arch: {}'.format(new_arch))
             print('')
 
         new_model = helpers._insert_layer(
             new_model, helpers.arch_to_layer(conv_params, activation=base_net.act), idx + 1
         )
-
-        if const.deep_debug:
-            print('')
-            print('__add_conv_max: inside for-loop')
-            new_model.summary()
-            print('')
 
     return Network(
         architecture=new_arch,
