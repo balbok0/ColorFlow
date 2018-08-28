@@ -47,9 +47,9 @@ def __get_masks(x_shape, y):
 
     # Ratios split the whole dataset to ratios given class and first class.
     # Part scales these ratios up, so that, 'part' corresponds to size of first class.
-    part = const.n_train * 1. / sum(ratios)
+    part = const.n_train * 1. / sum(ratios.values())
     if part == 0:  # n_train is 0.
-        part = len(y) * 1. / sum(ratios)
+        part = len(y) * 1. / sum(ratios.values())
 
     # Masks of what to keep.
     indexes_x = np.full(shape=x_shape, fill_value=False, dtype=bool)
@@ -88,7 +88,6 @@ def prepare_data(dataset='colorflow', first_time=True):
 
         # Needed for typing.
         (_, _), (x_val, y_val) = (None, None), (None, None)  # type: Array_Type
-
         if name in ['cifar', 'cifar10']:
             from keras.datasets import cifar10
             from keras.utils.np_utils import to_categorical
@@ -126,23 +125,23 @@ def prepare_data(dataset='colorflow', first_time=True):
             from keras.utils.io_utils import HDF5Matrix
             from keras.utils.np_utils import to_categorical
 
-            fname = get_ready_path('Herwig Dipole')
+            fname = get_ready_path('Herwig Angular')
 
             # Data loading
             with h5.File(fname) as hf:
+                n_classes = len(np.unique(hf['train/y']))
 
                 # Cap of training images (approximately).
                 memory_cost = 122 * 4  # Buffer for creating np array
                 memory_cost += get_memory_size(hf['train/x'], const.n_train)
                 memory_cost += 2 * get_memory_size(hf['train/y'], const.n_train)
-                memory_cost += get_memory_size(hf['val/x'])
-                memory_cost += 2 * get_memory_size(hf['val/y'])
 
                 indexes_x, indexes_y = __get_masks(hf['train/x'].shape, hf['train/y'][()])
 
             x_sing_shape = list(indexes_x.shape[1:])
 
-            if memory_cost < psutil.virtual_memory()[1] * .85:  # available memory
+            # Available memory for training
+            if memory_cost < psutil.virtual_memory().available - psutil.virtual_memory().total * 0.15:
                 with h5.File(fname) as hf:
                     x_train = np.array([])
                     for i in range(int(len(hf['train/x'])/const.n_train) + 1):
@@ -150,18 +149,30 @@ def prepare_data(dataset='colorflow', first_time=True):
                                                   hf['train/x'][i * const.n_train: (i + 1) * const.n_train]
                                                   [indexes_x[i * const.n_train: (i + 1) * const.n_train]]))
                     x_train = np.reshape(x_train, [int(len(x_train) / np.prod(x_sing_shape))] + x_sing_shape)
-                    y_train = to_categorical(hf['train/y'][indexes_y], len(np.unique(hf['train/y'])))
-                    if first_time:
-                        x_val = hf['val/x'][()]
-                        y_val = to_categorical(hf['val/y'], len(np.unique(hf['val/y'])))[()]
+                    y_train = to_categorical(hf['train/y'][indexes_y], n_classes)
 
             else:  # data too big for memory.
                 x_train = HDF5Matrix(fname, 'train/x')[indexes_x]
                 x_train = np.reshape(x_train, [int(len(x_train) / np.prod(x_sing_shape))] + x_sing_shape)
-                y_train = to_categorical(HDF5Matrix(fname, 'train/y')[indexes_y], len(np.unique(hf['train/y'])))
-                if first_time:
+                y_train = to_categorical(HDF5Matrix(fname, 'train/y')[indexes_y], n_classes)
+
+            if first_time:
+                with h5.File(fname) as hf:
+                    # Cap of training images (approximately).
+                    memory_cost = 122 * 4  # Buffer for creating np array
+                    memory_cost += get_memory_size(hf['val/x'])
+                    memory_cost += 2 * get_memory_size(hf['val/y'])
+
+                # Available memory for validation.
+                if memory_cost < psutil.virtual_memory().available - psutil.virtual_memory().total * 0.15:
+                    with h5.File(fname) as hf:
+                        x_val = hf['val/x'][()]
+                        y_val = to_categorical(hf['val/y'], n_classes)[()]
+
+                else:  # data too big for memory.
                     x_val = HDF5Matrix(fname, 'val/x')
-                    y_val = to_categorical(HDF5Matrix(fname, 'val/y'), len(np.unique(hf['val/y'])))
+                    y_val = to_categorical(HDF5Matrix(fname, 'val/y'), n_classes)
+
         else:
             raise AttributeError('Invalid name of dataset.')
 

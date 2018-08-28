@@ -56,6 +56,7 @@ class __Mutator(object):
         :return: Keras Model of neural network, which was the best in last generation, with already trained weights.
         """
         from helpers.helpers_data import prepare_data
+
         prepare_data(dataset)
 
         if saving_dir is None:
@@ -91,8 +92,6 @@ class __Mutator(object):
         for i in range(generations):
             if verbose > 0:
                 print('\n\nGeneration %d' % (i + 1))
-
-            prepare_data(dataset, first_time=False)
 
             log_save.print_message('Starting training for generation %d' % (i + 1))
 
@@ -139,6 +138,7 @@ class __Mutator(object):
 
             if not i + 1 == generations:
                 self.__evolve_networks(scores, population_size)
+                prepare_data(dataset, first_time=False)
 
         best = scores.popitem()
         best_score = best[1]
