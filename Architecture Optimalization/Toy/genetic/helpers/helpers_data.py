@@ -56,9 +56,9 @@ def __get_masks(x_shape, y):
     indexes_y = np.full(shape=y.shape, fill_value=False, dtype=bool)
 
     for i in all_indexes.keys():
-        for j in random.sample(all_indexes[i], int(part * ratios[i])):
-            indexes_y[j] = True
-            indexes_x[j, ...] = True
+        chosen_idxs = random.sample(all_indexes[i], int(part * ratios[i]))
+        indexes_y[chosen_idxs] = True
+        indexes_x[chosen_idxs, ...] = True
 
     return indexes_x, indexes_y
 
@@ -130,6 +130,7 @@ def prepare_data(dataset='colorflow', first_time=True):
 
             # Data loading
             with h5.File(fname) as hf:
+
                 # Cap of training images (approximately).
                 memory_cost = 122 * 4  # Buffer for creating np array
                 memory_cost += get_memory_size(hf['train/x'], const.n_train)
@@ -139,26 +140,28 @@ def prepare_data(dataset='colorflow', first_time=True):
 
                 indexes_x, indexes_y = __get_masks(hf['train/x'].shape, hf['train/y'][()])
 
-            if memory_cost < psutil.virtual_memory()[1]:  # available memory
-                with h5.File(fname) as hf:
-                    x_sing_shape = list(hf['train/x'][0].shape)
-                    x_train = hf['train/x'][indexes_x]
-                    x_train = np.reshape(x_train, [int(len(x_train) / np.prod(x_sing_shape))] + x_sing_shape)
+            x_sing_shape = list(indexes_x.shape[1:])
 
+            if memory_cost < psutil.virtual_memory()[1] * .85:  # available memory
+                with h5.File(fname) as hf:
+                    x_train = np.array([])
+                    for i in range(int(len(hf['train/x'])/const.n_train) + 1):
+                        x_train = np.concatenate((x_train,
+                                                  hf['train/x'][i * const.n_train: (i + 1) * const.n_train]
+                                                  [indexes_x[i * const.n_train: (i + 1) * const.n_train]]))
+                    x_train = np.reshape(x_train, [int(len(x_train) / np.prod(x_sing_shape))] + x_sing_shape)
                     y_train = to_categorical(hf['train/y'][indexes_y], len(np.unique(hf['train/y'])))
                     if first_time:
                         x_val = hf['val/x'][()]
                         y_val = to_categorical(hf['val/y'], len(np.unique(hf['val/y'])))[()]
 
             else:  # data too big for memory.
-                x_sing_shape = list(hf['train/x'][0].shape)
                 x_train = HDF5Matrix(fname, 'train/x')[indexes_x]
                 x_train = np.reshape(x_train, [int(len(x_train) / np.prod(x_sing_shape))] + x_sing_shape)
                 y_train = to_categorical(HDF5Matrix(fname, 'train/y')[indexes_y], len(np.unique(hf['train/y'])))
                 if first_time:
                     x_val = HDF5Matrix(fname, 'val/x')
                     y_val = to_categorical(HDF5Matrix(fname, 'val/y'), len(np.unique(hf['val/y'])))
-
         else:
             raise AttributeError('Invalid name of dataset.')
 

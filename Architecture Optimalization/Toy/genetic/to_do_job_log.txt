@@ -128,6 +128,7 @@ TODO: Improve the two parent mutation, so that it is somewhat random.
                         3. This adds only one hyper-parameter to this program,
                             which was meant to minimize # of choices by a human. So that's good.
                         TODO: 4. Make use of weights from the model which gives the conv_max_seq, and ones after dense_drop
+                            - 26/08 - Made for conv_max_seq
     2. Created a second, much more random version of a parent mutation, however copying weights cannot be supported.
         - 26/08 - 1. Only sequences are copied, not whole halves of networks.
     - generalize it to n parent mutation?
@@ -176,3 +177,7 @@ TODO: When copying over conv-max seq, make sure that the weights of the seqs, ar
 TODO: BUG! Make a smart limit for number of maxpools. (Make a support for 1-D input too, by making flag inp_dim?)
     - 25/08 - 1. Made 2 properties, one for # of dimensions of input, one for maximal number of maxpool layers.
         TODO: 2. In order to add support for 1-D input prepare_data has to be modified.
+
+TODO: Limit number of things printed under debug (make a third mode of debugging? or move some things into deep_debug)
+
+TODO: Speed up Network creation (basically base it only on arch in mutator, and then make a Network out of it).
