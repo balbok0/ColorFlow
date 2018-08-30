@@ -190,7 +190,7 @@ def add_conv_max(base_net, conv_num=3):
             max_idx += [idx]
         idx += 1
 
-    if const.debug:
+    if const.deep_debug:
         print('')
         print('add_conv_max')
         print('max_idx: {}'.format(max_idx))
@@ -253,13 +253,13 @@ def add_dense_drop(base_net):
                 or at the beginning of 1D computations in the model.
     """
     drop_idx = [helpers.find_first_dense(base_net.model)[0] - 3]
-    idx = 0  # Since Activation layer is always first, and Flatten is before any Dropouts.
+    idx = 0
     for l in base_net.arch:
         if helpers.arch_type(l) == 'drop':
             drop_idx += [idx]
         idx += 1
 
-    if const.debug:
+    if const.deep_debug:
         print('')
         print('add_drop_dense')
         print('drop_idx: {}'.format(drop_idx))
@@ -315,7 +315,7 @@ def __add_dense_drop(base_net, idx, dense_params, drop_params):
             idx + 3
         )
 
-    if const.debug:
+    if const.deep_debug:
         print('')
         print('add_dense_drop: at the end')
         print('New arch: {}'.format(new_arch))
@@ -357,7 +357,7 @@ def remove_conv_max(base_net):
     else:
         curr_idx = 1
 
-    if const.debug:
+    if const.deep_debug:
         print('')
         print('remove_conv_max')
         print('\tmax_idx: {}'.format(max_idx))
@@ -398,7 +398,7 @@ def __remove_conv_max(base_net, idx_start, idx_end):
         idx_start = -1  # Edge case
 
     for i in range(idx_start, idx_end):
-        if const.debug:
+        if const.deep_debug:
             print('')
             print('__remove_conv_max')
             print('\t layer tb removed: {}'.format(base_net.arch[i + 1]))
@@ -458,7 +458,7 @@ def __remove_dense_drop(base_net, drop_idx):
         print('')
 
     if helpers.arch_type(base_net.arch[drop_idx - 1]) == 'dense':  # Previous layer is dense.
-        if const.debug:
+        if const.deep_debug:
             print('')
             print('remove_dense_drop - 1st path (layer before is dense)')
             print('')
@@ -467,7 +467,7 @@ def __remove_dense_drop(base_net, drop_idx):
         new_arch = new_arch[:drop_idx-1] + new_arch[drop_idx+1:]
 
     elif helpers.arch_type(base_net.arch[drop_idx - 1]) == 'drop':  # Previous layer is dropout.
-        if const.debug:
+        if const.deep_debug:
             print('')
             print('remove_dense_drop - 2nd path (layer before is drop)')
             print('')
@@ -481,7 +481,7 @@ def __remove_dense_drop(base_net, drop_idx):
                 break
         new_arch = new_arch[:drop_idx - lay_before + 1] + new_arch[drop_idx + 1:]
     else:
-        if const.debug:
+        if const.deep_debug:
             print('')
             print('remove_dense_drop - 3rd path (layer before is something else)')
             print('')
@@ -495,3 +495,71 @@ def __remove_dense_drop(base_net, drop_idx):
         activation=base_net.act,
         callbacks=base_net.callbacks
     )
+
+
+def add_arch_dense_drop(base_arch):
+    # type: (List[Union[str, int, Tuple[Tuple[int, int], int]]]) -> List[Union[str, int, Tuple[Tuple[int, int], int]]]
+    drop_idx = []
+    idx = 0
+    for l in base_arch:
+        if helpers.arch_type(l) == 'drop':
+            drop_idx += [idx]
+        elif not drop_idx and helpers.arch_type(l) == 'dense':
+            drop_idx += [idx]
+        idx += 1
+
+    idx = random.choice(drop_idx)
+    dense_params = random.choice(const.mutations.fget()['dense_size'])
+    drop_params = 'drop%.2f' % random.choice(const.mutations.fget()['dropout'])
+
+    new_arch = base_arch.copy()
+
+    if idx >= len(new_arch):
+        new_arch = new_arch[:idx] + [drop_params] + new_arch[idx:]
+
+    else:
+        new_arch = new_arch[:idx + 1] + [drop_params] + new_arch[idx + 1:]
+
+    if idx >= len(base_arch):
+        new_arch = new_arch[:idx] + [dense_params] + new_arch[idx:]
+
+    else:
+        new_arch = new_arch[:idx + 1] + [dense_params] + new_arch[idx + 1:]
+
+    return new_arch
+
+
+def add_arch_conv_max(base_arch, conv_num=3):
+    # type: (List[Union[str, int, Tuple]], int) -> List[Union[str, int, Tuple]]
+
+    if const.input_dim.fget() < 3:
+        return add_arch_dense_drop(base_arch)
+
+    if not helpers.can_add_max_number(base_arch):
+        return add_arch_dense_drop(base_arch)
+
+    max_idx = [0]
+    idx = 1
+    for l in base_arch:
+        if helpers.arch_type(l) == 'max':
+            max_idx += [idx]
+        idx += 1
+
+    if const.deep_debug:
+        print('')
+        print('add_conv_max')
+        print('max_idx: {}'.format(max_idx))
+        print('')
+
+    idx = random.choice(max_idx)
+    conv_params = (random.choice(const.mutations.fget()['kernel_size']),
+                   random.choice(const.mutations.fget()['conv_filters']))
+
+    new_arch = base_arch.copy()
+
+    new_arch = new_arch[:idx] + ['max'] + new_arch[idx:]
+
+    for l in range(conv_num):
+        new_arch = new_arch[:idx] + [conv_params] + new_arch[idx:]
+
+    return new_arch

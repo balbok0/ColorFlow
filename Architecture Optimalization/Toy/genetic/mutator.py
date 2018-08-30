@@ -80,9 +80,13 @@ class __Mutator(object):
                 self.networks = starting_population[:]
                 for i in range(len(starting_population), population_size):
                     self.networks.append(self.__create_random_model())
+                    if verbose > 0:
+                        print('Created network: {}/{}'.format(i, population_size))
         else:
             for i in range(population_size):
                 self.networks.append(self.__create_random_model())
+                if verbose > 0:
+                    print('Created network: {}/{}'.format(i, population_size))
 
         scores = {}  # Needed to suppress warnings.
 
@@ -220,15 +224,7 @@ class __Mutator(object):
                             random.choice(const.mutations.fget()['conv_filters'])),
                             random.choice(const.mutations.fget()['dense_size'])]
 
-        net = Network(
-            architecture=architecture,
-            opt=random.choice(const.mutations.fget()['optimizer']),
-            lr=random.choice(const.mutations.fget()['optimizer_lr']),
-            activation=random.choice(const.mutations.fget()['activation'])
-        )
-
         n_layers = 2  # since there's always at least one conv, dense layer.
-        n_weights = helpers.get_number_of_weights(net.model)
 
         # r_min - adding any new sequence.,
         r_min = .5
@@ -236,23 +232,24 @@ class __Mutator(object):
         if const.input_dim.fget() >= 3:
             # Convolution/Maxout part of architecture
             r = random.random()
-            while (r > r_min and n_layers < const.max_depth != 0 and n_weights < const.max_n_weights != 0) \
-                    or n_layers < const.min_depth != 0:
-                net = helpers_mutate.add_conv_max(net)
-                n_layers = len(net.arch)
-                n_weights = helpers.get_number_of_weights(net.model)
+            while (r > r_min and n_layers < const.max_depth != 0) or n_layers < const.min_depth != 0:
+                n_layers = len(architecture)
+                architecture = helpers_mutate.add_arch_conv_max(architecture)
                 r = random.random()
 
         # Dense/Dropout part of architecture
         r = random.random()
-        while (r > r_min and n_layers < const.max_depth != 0 and n_weights < const.max_n_weights != 0) \
-                or n_layers < const.min_depth != 0:
-            net = helpers_mutate.add_dense_drop(net)
-            n_layers = len(net.arch)
-            n_weights = helpers.get_number_of_weights(net.model)
+        while (r > r_min and n_layers < const.max_depth != 0) or n_layers < const.min_depth != 0:
+            n_layers = len(architecture)
+            architecture = helpers_mutate.add_arch_dense_drop(architecture)
             r = random.random()
 
-        return net
+        return Network(
+            architecture=architecture,
+            opt=random.choice(const.mutations.fget()['optimizer']),
+            lr=random.choice(const.mutations.fget()['optimizer_lr']),
+            activation=random.choice(const.mutations.fget()['activation'])
+        )
 
     def __mutate(self, base_net_1, base_net_2, change_number_cap=3):
         # type: (Network, Network, int) -> List[Network]
