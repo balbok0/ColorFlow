@@ -28,7 +28,7 @@ class Network:
             Network.__x_train = data[0]
             Network.__y_train = data[1]
 
-    default_callbacks = [EarlyStopping(patience=5)]  # type: List[Callback]
+    default_callbacks = [EarlyStopping(patience=5), helpers.NaNSafer()]  # type: List[Callback]
 
     def __init__(self, architecture, copy_model=None, opt='adam', lr=None, activation='relu', callbacks=None):
         # type: (Network, List, Model, Union[str, optimizers.Optimizer], float, str, List[Callback]) -> None

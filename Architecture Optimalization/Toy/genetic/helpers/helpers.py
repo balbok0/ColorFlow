@@ -5,6 +5,7 @@ import numpy as np
 from keras.activations import softmax, softplus, softsign, elu, relu, selu, linear, tanh, sigmoid, hard_sigmoid
 from keras.layers import Activation, Conv2D, Dense, Dropout, Flatten, Layer, MaxPool2D
 from keras.models import Sequential, Model
+from keras.callbacks import Callback
 from scipy import interp
 from sklearn.metrics import roc_curve, auc
 from typing import List, Tuple, Union
@@ -432,3 +433,20 @@ def clone_model(base_model, new_act, new_opt):
 
     model.compile(optimizer=new_opt, loss='categorical_crossentropy', metrics=['accuracy'])
     return model
+
+
+class NaNSafer(Callback):
+
+    def __init__(self):
+        Callback.__init__(self)  # super call in such way for compatibility reasons between python 2 and 3
+        self.weights = None
+
+    def on_epoch_begin(self, epoch: int, logs: dict=None):
+        self.weights = self.model.get_weights()
+
+    def on_batch_end(self, batch: int, logs: dict=None):
+        logs = logs or {}
+        if 'loss' in logs.keys():
+            if 'nan' == str(logs['loss']):
+                self.model.set_weights(self.weights)
+                self.model.stop_training = True

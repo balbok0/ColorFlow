@@ -191,7 +191,7 @@ class __Mutator(object):
             if len(tmp_nets) >= 2:
                 pair = np.random.choice(tmp_nets, size=2, replace=False, p=tmp_p)
                 for i_pair in called_pairs:
-                    if pair == i_pair:
+                    if all(elem in pair for elem in i_pair):
                         for j in pair:
                             idx = tmp_p[tmp_nets.index(j)]
                             tmp_p = tmp_p[:idx] + tmp_p[idx:]

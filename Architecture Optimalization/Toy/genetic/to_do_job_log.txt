@@ -85,9 +85,14 @@ TODO: Bug. Nan in loss. Now in middle of the epoch. Maybe something with diverge
             callbacks   : EarlyStopping/default
     - As of 22/08 it never happened after around 1/08, which hints that it is an extremely rare bug,
         and may be connected to something that I already fixed on a way, or some bug in keras.
-    - 26/08: Seems that it is not something with Nadam, with lr 0.001, but in need of investigation that.
+    - 26/08 - Seems that it is not something with Nadam, with lr 0.001, but in need of investigation that.
             - Not related to input data, as exactly same data sometimes results in nans, and sometimes does not
             - Thus, it is probably, how weights are initialized.
+    - 06/09 - Run a NaN investigation program on all configurations in normal program. Since no pattern is found,
+                it would be better to implement quick fix, which after each epoch (batch?) would check if loss is NaN, and then, if so,
+                it would return weights to ones before epoch, and stop learning.
+    - 07/09 - Quick fix applied. It's called NaN looker, and if there is NaN in loss, the weights return to value before the epoch began.
+                A deeper study in what is the problem would be nice to do. Also try None values for lr.
 
 17/07: Investigate why dropout at the end of arch is legal. It's shouldn't be.
     - Done, added 'or j == len(architecture) - 1' in __init__ of network. Also added a test, in the test_network.
@@ -170,7 +175,7 @@ TODO: Improve the two parent mutation, so that it is somewhat random.
     - Done. If n_layers set to 0, then prepare data will just set whole dataset as x,y.
 
 TODO: When copying over conv-max seq, make sure that the weights of the seqs, are kept. In _parent_mutation.
-    - 26/08 - Done in parent mutation
+    - 26/08 - Done in parent mutation 1
 
 25/08: Make a smart limit for number of maxpools.
     - Made 2 properties, one for # of dimensions of input, one for maximal number of maxpool layers.
@@ -180,3 +185,4 @@ TODO: Make a support for 1-D input too. (by making flag inp_dim?) In order to ad
 TODO: Limit number of things printed under debug (make a third mode of debugging? or move some things into deep_debug)
 
 TODO: Speed up Network creation (basically base it only on arch in mutator, and then make a Network out of it).
+    - 01/08 - Done, created add sequences based only on arch.
