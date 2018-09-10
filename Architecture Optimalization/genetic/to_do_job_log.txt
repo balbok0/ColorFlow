@@ -185,4 +185,6 @@ TODO: Make a support for 1-D input too. (by making flag inp_dim?) In order to ad
 TODO: Limit number of things printed under debug (make a third mode of debugging? or move some things into deep_debug)
 
 TODO: Speed up Network creation (basically base it only on arch in mutator, and then make a Network out of it).
-    - 01/08 - Done, created add sequences based only on arch.
+    - 01/09 - Done, created add sequences based only on arch.
+
+TODO: Reorganize code in different branch. Specifically mutator

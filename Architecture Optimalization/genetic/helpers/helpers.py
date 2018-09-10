@@ -435,6 +435,12 @@ def clone_model(base_model, new_act, new_opt):
     return model
 
 
+def is_running_gpu():
+    # type: () -> bool
+    from tensorflow.python.client import device_lib
+    return 'CPU' in [x.device_type for x in device_lib.list_local_devices()]
+
+
 class NaNSafer(Callback):
 
     def __init__(self):
