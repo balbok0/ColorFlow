@@ -124,7 +124,7 @@ TODO: Limit depth/number of weights. Include a strict weight # cap.
     - 25/07 - comments on all of mutator, helpers_mutate functions.
     - 14/08 - comments on all of helpers/get_file_names/log_save. However, added private helpers for helpers_mutate, which won't have comments.
 
-TODO: Improve the two parent mutation, so that it is somewhat random.
+17/08-10/09: Improve the two parent mutation, so that it is somewhat random.
     1. Instead of having random mutation, make a mutation depended on two parents, and make random choices based on them. Or combine it and use both (random and parents version).
         - 17-18/08 -    1. Implemented and tested. Works, however is purely deterministic,
                             which may be a problem with a specific net propagating through
@@ -134,8 +134,9 @@ TODO: Improve the two parent mutation, so that it is somewhat random.
                             (section 2.3 of https://www.cs.vu.nl/~gusz/papers/PPSN1994-GAs-with-multiparent.pdf).
                         3. This adds only one hyper-parameter to this program,
                             which was meant to minimize # of choices by a human. So that's good.
-                        TODO: 4. Make use of weights from the model which gives the conv_max_seq, and ones after dense_drop
+                        4. Make use of weights from the model which gives the conv_max_seq, and ones after dense_drop
                             - 26/08 - Made for conv_max_seq
+                            - 10/09 - Done in all cases. Look at 'When copying over conv-max seq, make sure that...' TO-DO.
     2. Created a second, much more random version of a parent mutation, however copying weights cannot be supported.
         - 26/08 - 1. Only sequences are copied, not whole halves of networks.
     - generalize it to n parent mutation?
@@ -176,7 +177,7 @@ TODO: Improve the two parent mutation, so that it is somewhat random.
 28/08: Make 2/3 modes of data loading:
     - Done. If n_layers set to 0, then prepare data will just set whole dataset as x,y.
 
-TODO: When copying over conv-max seq, make sure that the weights of the seqs, are kept. In _parent_mutation.
+26/08-10/09: When copying over conv-max seq, make sure that the weights of the seqs, are kept. In _parent_mutation.
     - 26/08 - Done in parent mutation 1.
     - 10/09 - Done for parent mutation 2. In Conv-Max kernel is kept, since the everything else is different.
                 In Dense-Drop, bias is kept, and maximum # of weights possible is copied (Since, it's number depends on shape of input, they do not always match exactly).
