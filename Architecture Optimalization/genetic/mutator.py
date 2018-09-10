@@ -268,8 +268,10 @@ class __Mutator(object):
                 self.__mutate_random(base_net_2, change_number_cap)
             ]
 
-        else:
+        elif random.random() < 0.5:
             return self._mutate_parent(base_net_1, base_net_2)
+        else:
+            return self._mutate_parent_2(base_net_1, base_net_2)
 
     def _mutate_parent(self, base_net_1, base_net_2):
         # type: (Network, Network) -> List[Network]
@@ -362,6 +364,7 @@ class __Mutator(object):
 
             archs = [base_net_1.arch, base_net_2.arch]
             new_arch = []
+
             tmp = np.random.choice(len(max_seq_idx), size=n_max_seq, replace=False)
             max_idxs = []
             for i in tmp:
@@ -379,12 +382,43 @@ class __Mutator(object):
                 a = archs[i[0]]
                 new_arch += a[i[1]:i[2] + 1]
 
-            new_nets += [Network(
+            new_net = Network(
                 architecture=new_arch,
                 callbacks=random.choice([base_net_1.callbacks, base_net_2.callbacks]),
                 opt=random.choice([base_net_1.opt, base_net_2.opt]),
                 activation=random.choice([base_net_1.act, base_net_2.act]),
-            )]
+            )
+
+            nets = [base_net_1, base_net_2]  # type: List[Network]
+
+            idx = 1
+            for i in max_idxs:
+                a = nets[i[0]]
+                for j in range(i[1] + 1, i[2] + 1):
+                    kernel_filter = a.model.get_layer(index=j).get_weights()[1]
+                    new_weights = [new_net.model.get_layer(index=idx).get_weights()[0], kernel_filter]
+                    new_net.model.get_layer(index=idx).set_weights(new_weights)
+                    idx += 1
+                idx += 1  # for MaxPool
+
+            idx += 1
+
+            for i in drop_idxs:
+                a = nets[i[0]]
+                for j in range(i[1] + 2, i[2] + 2):
+                    w_a = a.model.get_layer(index=j).get_weights()
+                    w_n = new_net.model.get_layer(index=idx).get_weights()
+
+                    new_weights = w_a[0][:len(w_n[0])]
+                    if len(w_a[0]) < len(w_n[0]):
+                        new_weights = np.concatenate((new_weights, w_n[0][len(new_weights):]), axis=0)
+                    new_weights = [new_weights, w_a[1]]
+
+                    new_net.model.get_layer(index=idx).set_weights(new_weights)
+                    idx += 1
+                idx += 1  # for Dropout
+
+            new_nets += [new_net]
         return new_nets
 
     def __mutate_random(self, base_net, change_number_cap=3):

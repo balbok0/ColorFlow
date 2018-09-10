@@ -71,7 +71,7 @@ TODO: Check the size of the training dataset: https://github.com/36000/cnn_color
         Thus, even though the last activation was tanh, the problem was 0, appearing sometimes in the range of nn(since 0 -> 0 in tanh).
         Use SIGMOID as activation in last layer of nn, whenever possible.
 
-TODO: Bug. Nan in loss. Now in middle of the epoch. Maybe something with divergent optimizer.
+17/07-07/09: Bug. Nan in loss. Now in middle of the epoch. Maybe something with divergent optimizer.
     Nets:
         1 (17/07):
             architecture: [((3, 3), 16), 64, 64, 'drop0.70']
@@ -93,6 +93,7 @@ TODO: Bug. Nan in loss. Now in middle of the epoch. Maybe something with diverge
                 it would return weights to ones before epoch, and stop learning.
     - 07/09 - Quick fix applied. It's called NaN looker, and if there is NaN in loss, the weights return to value before the epoch began.
                 A deeper study in what is the problem would be nice to do. Also try None values for lr.
+    - TODO: Upload NaN on github and make a stack exchange/keras github issue on it.
 
 17/07: Investigate why dropout at the end of arch is legal. It's shouldn't be.
     - Done, added 'or j == len(architecture) - 1' in __init__ of network. Also added a test, in the test_network.
@@ -111,8 +112,9 @@ TODO: Limit depth/number of weights. Include a strict weight # cap.
         2. Modified fit to update these variables.
         3. Modified score to determine which weights to keep based on score.
 
-TODO: Split helper methods based on what they are helping with. Maybe even make a backend folder.
+22-26/07: Split helper methods based on what they are helping with. Maybe even make a backend folder.
     - 22/07 - Methods to mutate have different .py file.
+    - Migrated to a 'helpers' subdir.
 
 24/07: Split local variables to 2 files. One for files, one for constants.
     - Done. Put in a subdir.
@@ -175,16 +177,25 @@ TODO: Improve the two parent mutation, so that it is somewhat random.
     - Done. If n_layers set to 0, then prepare data will just set whole dataset as x,y.
 
 TODO: When copying over conv-max seq, make sure that the weights of the seqs, are kept. In _parent_mutation.
-    - 26/08 - Done in parent mutation 1
+    - 26/08 - Done in parent mutation 1.
+    - 10/09 - Done for parent mutation 2. In Conv-Max kernel is kept, since the everything else is different.
+                In Dense-Drop, bias is kept, and maximum # of weights possible is copied (Since, it's number depends on shape of input, they do not always match exactly).
 
-25/08: Make a smart limit for number of maxpools.
+25-26/08: Make a smart limit for number of maxpools.
     - Made 2 properties, one for # of dimensions of input, one for maximal number of maxpool layers.
+    - Implemented.
 
 TODO: Make a support for 1-D input too. (by making flag inp_dim?) In order to add support for 1-D input prepare_data has to be modified.
+    - 01/09 - Implemented shape of input variable.
 
 TODO: Limit number of things printed under debug (make a third mode of debugging? or move some things into deep_debug)
 
-TODO: Speed up Network creation (basically base it only on arch in mutator, and then make a Network out of it).
+01-02/09: Speed up Network creation (basically base it only on arch in mutator, and then make a Network out of it).
     - 01/09 - Done, created add sequences based only on arch.
+    - 02/09 - Implemented in creating new networks.
 
-TODO: Reorganize code in different branch. Specifically mutator
+TODO: Reorganize code in different branch. Specifically mutator.
+
+TODO: README, and migrate to a different repo than main ColorFlow.
+
+TODO: Look for all github repos I was basing the code on.

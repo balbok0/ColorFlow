@@ -95,6 +95,30 @@ def check_priv_dense_drop_seq():
     print(__add_dense_drop(n2, 11, 32, 'drop0.70').arch)
 
 
+def check_mutate_parent():
+    n1 = Network(
+        [((3, 3), 16), ((7, 7), 16), 'max', ((3, 3), 16), ((3, 3), 16), ((3, 3), 16), 'max', ((3, 3), 8),
+         32, 'drop0.30', 128, 'drop0.30', 32]
+    )
+    n2 = Network(
+        [((3, 3), 16), ((7, 7), 16), 'max', ((3, 3), 16), ((3, 3), 16), ((3, 3), 16), 'max', ((3, 3), 8),
+         32, 'drop0.30', 128, 'drop0.30', 32]
+    )
+    print([i.arch for i in m._mutate_parent(n1, n2)])
+
+
+def aaaaacheck_mutate_parent_2():
+    n1 = Network(
+        [((3, 3), 16), ((7, 7), 16), 'max', ((3, 3), 16), ((3, 3), 16), ((3, 3), 16), 'max', ((3, 3), 8),
+         32, 'drop0.30', 128, 'drop0.30', 32]
+    )
+    n2 = Network(
+        [((3, 3), 16), ((7, 7), 16), 'max', ((3, 3), 16), ((3, 3), 16), ((3, 3), 16), 'max', ((3, 3), 8),
+         32, 'drop0.30', 128, 'drop0.30', 32]
+    )
+    print([i.arch for i in m._mutate_parent_2(n1, n2)])
+
+
 def main():
     """
     Always calls all the functions in this file, in alphabetical order. Does not call itself.
@@ -106,10 +130,9 @@ def main():
     all_functions = inspect.getmembers(current_module, inspect.isfunction)
     for key, value in all_functions:
         if inspect.getfullargspec(value).args == [] and not key == 'main':
-            print('\n\n\n\nNEW TEST\n\n')
-            print('%s start' % key)
+            print('NEW TEST: {}\n\n'.format(key))
             value()
-            print('%s end' % key)
+            print('\nEND TEST: {}\n\n\n\n'.format(key))
 
 
 if __name__ == '__main__':
