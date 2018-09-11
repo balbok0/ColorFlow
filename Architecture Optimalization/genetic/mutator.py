@@ -4,89 +4,83 @@ import random
 
 import numpy as np
 from keras import Model
-from typing import List, Dict
+from typing import *
 
 from helpers import helpers, helpers_mutate
+from helpers.helpers_data import Array_Type
 import log_save
 from network import Network
 from program_variables import program_params as const
 
-'''
-Actual Mutator class is in the bottom of this file!
-It wraps __Mutator class!!!
-'''
 
-
-class __Mutator(object):
-    def __init__(self, params=None):
-        # type: (__Mutator, Dict[str, List]) -> None
+class Mutator(object):
+    def __init__(self, population_size: int=10, starting_population: List[Network]=None, params: Dict=None):
         """
         Creates a new instance of Mutator.
 
         :param params: A dictionary of choices which can modify the network.
         """
+        assert population_size > 0
+
         if params is not None:
             const.mutations.fset(params)
             for i in ['kernel_size', 'conv_filers', 'dropout', 'dense_size', 'optimizer', 'optimizer_lr', 'activation']:
                 assert i in list(params.keys()), "There should be %s in params keys." % i
                 assert isinstance(params[i], list), "Key %s should be pointing to the list." % i
 
-        self.networks = []  # type: List[Network]
+        self.networks = starting_population or []  # type: List[Network]
+        self.population_size = population_size
 
     def get_best_architecture(
-            self, population_size=10, generations=20, saving_dir=None, starting_population=None,
-            epochs=2, batch_size=100, shuffle='batch', verbose=0, dataset='colorflow'
+            self, x, y, validation_data=None, validation_split=None,
+            generations=20, save_each_generation=True, saving_dir=None,
+            epochs=2, batch_size=32, shuffle='batch', verbose=0
     ):
-        # type: (__Mutator, int, int, str, List[Network], int, int, str, int, str) -> Model
+        # type: (Array_Type, Array_Type, Tuple, float, int, bool, str, int, int, str, int) -> Model
         """
         Main function of Mutator.\n
         Trains neural networks, and evolves them through generations, in order to find architecture, optimezr, etc.
         which allow for the best results given a dataset.
 
-        :param population_size: Number of neural networks in one genration.
         :param generations: Number of generations.
+        :param save_each_generation: Saves the best network from each generation in specified 'saving_dir'
         :param saving_dir: Directory to which models are saved.
-        :param starting_population: Population of networks to start with. On default a random population is generated.
         :param epochs: Number of epochs each network in each generation is trained.
         :param batch_size: Look at keras.models.Model.fit function documentation.
         :param shuffle: Look at keras.models.Model.fit function documentation.
         :param verbose: Look at keras.models.Model.fit function documentation.
                             Additionally, it specifies printing properties between generations.
-        :param dataset: Dataset to which neural network should be optimized.
         :return: Keras Model of neural network, which was the best in last generation, with already trained weights.
         """
-        from helpers.helpers_data import prepare_data
+        assert generations > 0
 
-        prepare_data(dataset)
+        if validation_data is None:
+            if validation_split is None:
+                raise AttributeError('Either validation_data or validation split cannot be None.')
+            else:
+                split = int(validation_split * len(x))
+                validation_data = (x[split:], y[split:])
+                x = x[:split]
+                y = y[:split]
+
+        if len(x.shape[1:]) >= 2:
+            const.max_layers_limit.fset(int(np.log2(x.shape[1])))
+
+        if len(self.networks) < self.population_size:
+            self.networks = self.networks[:]
+            for i in range(len(self.networks), self.population_size):
+                self.networks.append(self.__create_random_model(input_shape=x.shape[1:], output_shape=len(y[0])))
 
         if saving_dir is None:
             from program_variables.file_loc_vars import models_saving_dir
             saving_dir = models_saving_dir
+        assert os.path.exists(saving_dir)
 
         if not saving_dir.endswith('/'):
             saving_dir += '/'
 
         if not os.path.exists(saving_dir):
             os.makedirs(saving_dir)
-
-        assert population_size > 0
-        assert generations > 0
-        assert os.path.exists(saving_dir)
-
-        if starting_population is not None:
-            if len(starting_population) >= population_size:
-                self.networks = starting_population[:population_size]
-            else:
-                self.networks = starting_population[:]
-                for i in range(len(starting_population), population_size):
-                    self.networks.append(self.__create_random_model())
-                    if verbose > 0:
-                        print('Created network: {}/{}'.format(i, population_size))
-        else:
-            for i in range(population_size):
-                self.networks.append(self.__create_random_model())
-                if verbose > 0:
-                    print('Created network: {}/{}'.format(i, population_size))
 
         scores = {}  # Needed to suppress warnings.
 
@@ -99,8 +93,10 @@ class __Mutator(object):
 
             log_save.print_message('Starting training for generation %d' % (i + 1))
 
-            for net in self.networks:
-                net.fit(epochs=epochs, batch_size=batch_size, shuffle=shuffle, verbose=verbose)
+            for _, net in enumerate(self.networks):
+                print('Network {}/{}'.format(_, len(self.networks)))
+                net.fit(x, y, validation_data, validation_split,
+                        epochs=epochs, batch_size=batch_size, shuffle=shuffle, verbose=verbose)
 
             log_save.print_message('Finished training for generation %d' % (i + 1))
 
@@ -108,7 +104,7 @@ class __Mutator(object):
             best_net = None  # type: Network
 
             for net in self.networks:
-                tmp_scores[net] = net.score()
+                tmp_scores[net] = net.score(y_true=validation_data[1], y_score=net.predict(validation_data[0]))
                 if best_net is None or tmp_scores[net] > tmp_scores[best_net]:
                     best_net = net
 
@@ -138,11 +134,11 @@ class __Mutator(object):
             log_save.print_message(printing[verbose])
 
             # Save the best net of current generation.
-            best_net.save(file_path='{dir}net_{num:03d}.h5'.format(dir=saving_dir, num=i + 1))
+            if save_each_generation or i + 1 == generations:
+                best_net.save(file_path='{dir}net_{num:03d}.h5'.format(dir=saving_dir, num=i + 1))
 
             if not i + 1 == generations:
-                self.__evolve_networks(scores, population_size)
-                prepare_data(dataset, first_time=False)
+                self.__evolve_networks(scores, self.population_size, input_shape=x.shape[1:], output_shape=len(y[0]))
 
         best = scores.popitem()
         best_score = best[1]
@@ -163,8 +159,8 @@ class __Mutator(object):
         )
         return best_net.model
 
-    def __evolve_networks(self, scores, population_size):
-        # type: (collections.OrderedDict[Network, float], int) -> None
+    def __evolve_networks(self, scores, population_size, input_shape, output_shape):
+        # type: (collections.OrderedDict[Network, float], int, List, int) -> None
         """
         Modifies list of networks in such a way, that bottom half is removed,
         and new networks are added instead of them, all based on networks from top half.
@@ -193,7 +189,10 @@ class __Mutator(object):
                 for i_pair in called_pairs:
                     if all(elem in pair for elem in i_pair):
                         for j in pair:
+                            print([type(i) for i in tmp_p])
+                            print(tmp_nets.index(j))
                             idx = tmp_p[tmp_nets.index(j)]
+                            print(idx)
                             tmp_p = tmp_p[:idx] + tmp_p[idx:]
                             tmp_nets = tmp_nets[:j] + tmp_nets[idx:]
                         tmp_p = np.divide(p, sum(p))
@@ -201,17 +200,17 @@ class __Mutator(object):
 
                 else:
                     called_pairs += [pair, pair[::-1]]
-                    new_nets += self.__mutate(pair[0], pair[1])
+                    new_nets += self.__mutate(pair[0], pair[1], input_shape=input_shape, output_shape=output_shape)
             elif tmp_nets:
-                new_nets += [self.__mutate_random(tmp_nets[0])]
+                new_nets += [self.__mutate_random(tmp_nets[0], input_shape=input_shape, output_shape=output_shape)]
             tmp_p = p
             tmp_nets = self.networks
 
         for net in new_nets:
             self.networks.append(net)
 
-    def __create_random_model(self):
-        # type: (__Mutator) -> Network
+    def __create_random_model(self, input_shape, output_shape):
+        # type: (List, int) -> Network
         """
         Creates a random model, based of parameters choices given in this Mutator.
 
@@ -246,13 +245,15 @@ class __Mutator(object):
 
         return Network(
             architecture=architecture,
+            input_shape=input_shape,
+            output_shape=output_shape,
             opt=random.choice(const.mutations.fget()['optimizer']),
             lr=random.choice(const.mutations.fget()['optimizer_lr']),
             activation=random.choice(const.mutations.fget()['activation'])
         )
 
-    def __mutate(self, base_net_1, base_net_2, change_number_cap=3):
-        # type: (Network, Network, int) -> List[Network]
+    def __mutate(self, base_net_1, base_net_2, input_shape, output_shape, change_number_cap=3):
+        # type: (Network, Network, List, int, int) -> List[Network]
         """
         Creates and returns two new Networks, based on passed in parent Networks.
 
@@ -264,17 +265,23 @@ class __Mutator(object):
 
         if random.random() < const.parent_to_rand_chance:
             return [
-                self.__mutate_random(base_net_1, change_number_cap),
-                self.__mutate_random(base_net_2, change_number_cap)
+                self.__mutate_random(base_net_1,
+                                     change_number_cap=change_number_cap,
+                                     input_shape=input_shape,
+                                     output_shape=output_shape),
+                self.__mutate_random(base_net_2,
+                                     change_number_cap=change_number_cap,
+                                     input_shape=input_shape,
+                                     output_shape=output_shape)
             ]
 
         elif random.random() < 0.5:
-            return self._mutate_parent(base_net_1, base_net_2)
+            return self._mutate_parent(base_net_1, base_net_2, input_shape, output_shape)
         else:
-            return self._mutate_parent_2(base_net_1, base_net_2)
+            return self._mutate_parent_2(base_net_1, base_net_2, input_shape, output_shape)
 
-    def _mutate_parent(self, base_net_1, base_net_2):
-        # type: (Network, Network) -> List[Network]
+    def _mutate_parent(self, base_net_1, base_net_2, input_shape, output_shape):
+        # type: (Network, Network, List, int) -> List[Network]
         """
         Creates two new Networks, both based on combination of given parents.
 
@@ -289,6 +296,8 @@ class __Mutator(object):
 
         conv_1 = Network(
             architecture=base_net_1.arch[:dense_idx_1] + base_net_2.arch[dense_idx_2:],
+            input_shape=input_shape,
+            output_shape=output_shape,
             opt=base_net_2.opt,
             activation=base_net_2.act,
             callbacks=base_net_2.callbacks
@@ -296,6 +305,8 @@ class __Mutator(object):
 
         conv_2 = Network(
             architecture=base_net_2.arch[:dense_idx_2] + base_net_1.arch[dense_idx_1:],
+            input_shape=input_shape,
+            output_shape=output_shape,
             opt=base_net_1.opt,
             activation=base_net_1.act,
             callbacks=base_net_1.callbacks
@@ -316,8 +327,8 @@ class __Mutator(object):
         )
         return [conv_1, conv_2]
 
-    def _mutate_parent_2(self, base_net_1, base_net_2):
-        # type: (Network, Network) -> List[Network]
+    def _mutate_parent_2(self, base_net_1, base_net_2, input_shape, output_shape):
+        # type: (Network, Network, List, int) -> List[Network]
         """
         Creates two new Networks, both based on combination of given parents.
         More random than :ref:`main _mutate_parent<mutator.__Mutator#_mutate_parent>`.
@@ -360,19 +371,15 @@ class __Mutator(object):
                 idx += 1
 
             n_max_seq = random.choice(n_max_seq + [len(max_seq_idx) - n_max_seq[0], int(len(max_seq_idx) / 2)])
+            n_max_seq = max(1, n_max_seq)
             n_drop_seq = random.choice(n_drop_seq + [len(drop_seq_idx) - n_drop_seq[0], int(len(drop_seq_idx) / 2)])
+            n_drop_seq = max(1, n_drop_seq)
 
             archs = [base_net_1.arch, base_net_2.arch]
             new_arch = []
 
-            tmp = np.random.choice(len(max_seq_idx), size=n_max_seq, replace=False)
-            max_idxs = []
-            for i in tmp:
-                max_idxs += [max_seq_idx[i]]
-            tmp = np.random.choice(len(drop_seq_idx), size=n_drop_seq, replace=False)
-            drop_idxs = []
-            for i in tmp:
-                drop_idxs += [drop_seq_idx[i]]
+            max_idxs = np.random.choice(max_seq_idx, size=n_max_seq, replace=n_max_seq > len(max_seq_idx))
+            drop_idxs = np.random.choice(drop_seq_idx, size=n_drop_seq, replace=n_drop_seq > len(drop_seq_idx))
 
             for i in max_idxs:
                 a = archs[i[0]]
@@ -387,6 +394,8 @@ class __Mutator(object):
                 callbacks=random.choice([base_net_1.callbacks, base_net_2.callbacks]),
                 opt=random.choice([base_net_1.opt, base_net_2.opt]),
                 activation=random.choice([base_net_1.act, base_net_2.act]),
+                input_shape=input_shape,
+                output_shape=output_shape,
             )
 
             nets = [base_net_1, base_net_2]  # type: List[Network]
@@ -421,8 +430,8 @@ class __Mutator(object):
             new_nets += [new_net]
         return new_nets
 
-    def __mutate_random(self, base_net, change_number_cap=3):
-        # type: (Network, int) -> Network
+    def __mutate_random(self, base_net, input_shape, output_shape, change_number_cap=3):
+        # type: (Network, List, int, int) -> Network
         """
         Given a network, returns a new Network, with a random number of mutations (capped at given number).
 
@@ -450,26 +459,6 @@ class __Mutator(object):
             n_of_changes = change_number_cap
 
         for i in range(n_of_changes):
-            base_net = np.random.choice(possible_changes, p=probabilities)(base_net)
+            base_net = np.random.choice(possible_changes, p=probabilities)(base_net, input_shape, output_shape)
 
         return base_net
-
-
-class Singleton(type):
-    """
-    Singleton to keep the only one instance of given class.
-    """
-
-    _instances = {}
-
-    def __call__(cls, *args, **kwargs):
-        if cls not in cls._instances:
-            cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
-        return cls._instances[cls]
-
-
-class Mutator(__Mutator):
-    """
-    __Mutator wrapper into Singleton, by using metaclasses.
-    """
-    __metaclass__ = Singleton

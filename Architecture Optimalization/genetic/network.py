@@ -5,9 +5,10 @@ from keras import optimizers
 from keras.callbacks import EarlyStopping, Callback
 from keras.layers import Activation, Dense, Flatten, Dropout, Conv2D, MaxPool2D
 from keras.models import Sequential, Model
-from typing import List, Dict, Union
+from typing import *
 
 from helpers import helpers
+from helpers.helpers_data import Array_Type
 from program_variables.program_params import debug
 
 
@@ -15,7 +16,6 @@ class Network:
     """
     A wrapper class around :ref:`Model<keras.engine.training.Model>`.
     """
-    (__x_train, __y_train), (__x_val, __y_val) = (None, None), (None, None)
 
     @staticmethod
     def _set_dataset(data):
@@ -30,8 +30,11 @@ class Network:
 
     default_callbacks = [EarlyStopping(patience=5), helpers.NaNSafer()]  # type: List[Callback]
 
-    def __init__(self, architecture, copy_model=None, opt='adam', lr=None, activation='relu', callbacks=None):
-        # type: (Network, List, Model, Union[str, optimizers.Optimizer], float, str, List[Callback]) -> None
+    def __init__(
+            self, architecture, input_shape, output_shape, copy_model=None,
+            opt='adam', lr=None, activation='relu', callbacks=None
+    ):
+        # type: (List, List, int, Model, Union[str, optimizers.Optimizer], float, str, List[Callback]) -> None
         """
         Creates a new instance of Network.
 
@@ -136,7 +139,7 @@ class Network:
         self.__prev_weights = None  # type: np.ndarray
         if copy_model is None:
             self.model = Sequential()  # type: Sequential
-            self.__create_model()
+            self.__create_model(input_shape, output_shape)
         else:
             self.model = helpers.clone_model(copy_model, self.act, self.opt)
             assert helpers.assert_model_arch_match(self.model, self.arch)
@@ -193,8 +196,9 @@ class Network:
                 return optimizers.Adadelta(lr=lr)
         raise AttributeError('Invalid name of optimizer given.')
 
-    def fit(self, epochs=20, batch_size=100, shuffle='batch', verbose=0):
-        # type: (Network, int, int, str, int) -> None
+    def fit(self, x, y, validation_data=None, validation_split=0.,
+            epochs=20, batch_size=32, shuffle='batch', verbose=0):
+        # type: (Array_Type, Array_Type, Tuple[Array_Type], float, int, int, str, int) -> None
         """
         Trains a network on a training set.
         For paramaters descriptions look at documentation for keras.models.Model.fit function.
@@ -202,37 +206,51 @@ class Network:
         self.__prev_score = self.__score
         self.__prev_weights = copy.deepcopy(self.model.get_weights())
         self.__score = 0.  # Resets score, so it will not collide w/ scoring it again (but w/ different weights).
-        if Network.__x_train is None or Network.__x_val is None or Network.__y_train is None or Network.__y_val is None:
-            from helpers.helpers_data import prepare_data
-            prepare_data()
+
         if debug:
             print(self.get_config())
-        self.model.fit(
-            x=Network.__x_train, y=Network.__y_train, epochs=epochs, batch_size=batch_size, shuffle=shuffle,
-            callbacks=self.callbacks,
-            validation_data=(Network.__x_val, Network.__y_val),
-            verbose=verbose
-        )
 
-    def score(self, f=None):
-        # type: (Network, function) -> float
+        if validation_data is not None:
+            self.model.fit(
+                x=x, y=y, epochs=epochs, batch_size=batch_size, shuffle=shuffle,
+                callbacks=self.callbacks,
+                validation_data=validation_data,
+                verbose=verbose
+            )
+        elif 0. < validation_split < 1.:
+            self.model.fit(
+                x=x, y=y, epochs=epochs, batch_size=batch_size, shuffle=shuffle,
+                callbacks=self.callbacks,
+                validation_split=validation_split,
+                verbose=verbose
+            )
+        else:
+            self.model.fit(
+                x=x, y=y, epochs=epochs, batch_size=batch_size, shuffle=shuffle,
+                callbacks=self.callbacks,
+                verbose=verbose
+            )
+
+    def score(self, y_true, y_score, f=None):
+        # type: (np.ndarray, np.ndarray, function) -> float
         """
         Scores a network on a given function/metric.
 
+        :param y_true: Target values of y. Has to match f shape requirements (binary class matrix, if f not defined).
+        :param y_score: Values of y to be scored. Has to match f shape requirements, or y_true shape.
         :param f: Function to score a function on. If not given a Area Under ROC Curve is used as a metric.
         :return: Returns a score of this network on given function/metric.
         """
         import inspect
 
-        if f is None:
-            f = helpers.multi_roc_score
+        f = f or helpers.multi_roc_score
 
         args = inspect.getfullargspec(f).args
         if not ('y_true' in args and 'y_score' in args):
             raise AttributeError('Given function f, should have parameters y_true and y_score.')
 
         if self.__score == 0.0:
-            self.__score = f(y_true=self.__y_val, y_score=self.model.predict(self.__x_val))
+            self.__score = f(y_true=y_true, y_score=y_score)
 
         if self.__score < self.__prev_score:
             self.__score = self.__prev_score
@@ -241,6 +259,12 @@ class Network:
             self.__prev_weights = None
 
         return self.__score
+
+    def predict(self, x: List) -> List:
+        """
+        Look at keras.models.Model.predict function docs.
+        """
+        return self.model.predict(x)
 
     def save(self, file_path, overwrite=True):
         # type: (Network, str, bool) -> None
@@ -252,7 +276,7 @@ class Network:
         """
         self.model.save(filepath=file_path, overwrite=overwrite)
 
-    def __create_model(self):
+    def __create_model(self, input_shape: List, output_shape: int) -> None:
         """
         With already set architecture, translates it into actual keras model.
         Also compiles it, so that an actual model is ready to use.
@@ -262,12 +286,9 @@ class Network:
 
         self.__model_created = True
 
-        if Network.__x_train is None or Network.__x_val is None or Network.__y_train is None or Network.__y_val is None:
-            raise Exception('Please prepare data before. creating a new model.')
-
         assert hasattr(self.arch, "__getitem__")
         assert isinstance(self.model, Sequential)
-        self.model.add(Activation(activation='linear', input_shape=list(Network.__x_train[0].shape)))
+        self.model.add(Activation(activation='linear', input_shape=input_shape))
 
         last_max_pool = True
         last_dropout = True
@@ -311,7 +332,7 @@ class Network:
 
         if len(self.model.output_shape) > 2:
             self.model.add(Flatten())
-        self.model.add(Dense(units=len(Network.__y_train[0]), activation='sigmoid'))
+        self.model.add(Dense(units=output_shape, activation='sigmoid'))
         self.model.compile(optimizer=self.opt, loss='categorical_crossentropy', metrics=['accuracy'])
 
     def get_config(self):
