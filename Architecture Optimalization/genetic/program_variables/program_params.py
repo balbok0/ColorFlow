@@ -2,7 +2,7 @@
 All variables which start with '_' are properties.
 However, all property functions are hidden at the bottom of the file.
 """
-
+from typing import List
 
 # Network parameters
 # When any of them is set to 0, then this boundary is ignored.
@@ -33,7 +33,7 @@ n_train = 50000
 
 
 # Development variables
-debug = True
+debug = False
 deep_debug = False
 
 
@@ -42,7 +42,8 @@ deep_debug = False
 
 # Auto-params. DO NOT CHANGE
 _max_limit = 0
-_input_dim = 0
+_input_shape = []
+_output_shape = 0
 
 
 # Properties. DO NOT CHANGE.
@@ -54,18 +55,37 @@ def max_layers_limit() -> int:
 @max_layers_limit.setter
 def max_layers_limit(val: int):
     global _max_limit
+    if _max_limit < val:
+        import warnings
+        warnings.warn("Maximum number of MaxPool layers not changed."
+                      "Tried to change to {}, while number of layers cannot be higher than {}".format(val, _max_limit))
     _max_limit = val
 
 
 @property
-def input_dim() -> int:
-    return _input_dim
+def input_shape() -> List[int]:
+    return _input_shape
 
 
-@input_dim.setter
-def input_dim(val: int):
-    global _input_dim
-    _input_dim = val
+@input_shape.setter
+def input_shape(val: List[int]):
+    import numpy as np
+    global _input_shape
+    _input_shape = val
+    if len(val) > 1:
+        global _max_limit
+        _max_limit = int(np.log2(np.min(val[1:])))
+
+
+@property
+def output_shape() -> int:
+    return _output_shape
+
+
+@output_shape.setter
+def output_shape(val: int):
+    global _output_shape
+    _output_shape = val
 
 
 @property
