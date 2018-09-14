@@ -374,13 +374,13 @@ class Network:
         """
         from program_variables.program_params import parent_to_rand_chance
 
-        if random.random() < parent_to_rand_chance:
+        if random.random() < 0.:  # TODO: CHANGE BACK TO: parent_to_rand_chance
             return [
                 Network._mutate_random(base_net_1, change_number_cap=change_number_cap),
                 Network._mutate_random(base_net_2, change_number_cap=change_number_cap)
             ]
 
-        elif random.random() < 0.5:
+        elif random.random() < 0.:
             return Network._mutate_parent(base_net_1, base_net_2)
         else:
             return Network._mutate_parent_2(base_net_1, base_net_2)
@@ -453,7 +453,7 @@ class Network:
                     max_seq_idx.append((0, max_seq_start_idx, idx))
                     max_seq_start_idx = idx + 1
                 elif helpers.arch_type(l) in ['drop', 'dense']:
-                    if helpers.arch_type(l) != 'max':
+                    if max_seq_start_idx != idx:
                         max_seq_idx.append((0, max_seq_start_idx, idx - 1))
                     break
                 idx += 1
@@ -479,11 +479,11 @@ class Network:
                     max_seq_idx.append((1, max_seq_start_idx, idx))
                     max_seq_start_idx = idx + 1
                 elif helpers.arch_type(l) in ['drop', 'dense']:
-                    if helpers.arch_type(l) != 'max':
+                    if max_seq_start_idx != idx:
                         max_seq_idx.append((1, max_seq_start_idx, idx - 1))
                     break
                 idx += 1
-
+            print(max_seq_idx)
             for l in base_net_2.arch[idx:]:
                 if helpers.arch_type(l) == 'drop':
                     drop_seq_idx.append((1, drop_seq_start_idx, idx))
@@ -491,7 +491,7 @@ class Network:
                 idx += 1
             if helpers.arch_type(base_net_2.arch[-1]) != 'drop':
                 drop_seq_idx.append((1, drop_seq_start_idx, len(base_net_2.arch) - 1))
-
+            print(drop_seq_idx)
             n_max_seq = random.choice(n_max_seq + [len(max_seq_idx) - n_max_seq[0], int(len(max_seq_idx) / 2)])
             n_max_seq = max(1, n_max_seq)
             n_drop_seq = random.choice(n_drop_seq + [len(drop_seq_idx) - n_drop_seq[0], int(len(drop_seq_idx) / 2)])
@@ -527,10 +527,20 @@ class Network:
 
             nets = [base_net_1, base_net_2]  # type: List[Network]
 
+            print('')
+            print('Net 1: {}'.format(base_net_1.arch))
+            print('Net 2: {}'.format(base_net_2.arch))
+            print('New net: {}'.format(new_net.arch))
+
             idx = 1
             for i in max_idxs:
                 a = nets[i[0]]
+                print('\tmax {}'.format(i))
                 for j in range(i[1] + 1, i[2] + 1):
+                    print('\t\t{}'.format(new_net.model.get_layer(index=idx)))
+                    print('\t\t{}'.format(a.model.get_layer(index=j)))
+                    print('\t\tfilter {}'.format(np.array(a.model.get_layer(index=j).get_weights()[1]).shape))
+                    print('\t\trest {}'.format(np.array(new_net.model.get_layer(index=idx).get_weights()[0]).shape))
                     kernel_filter = a.model.get_layer(index=j).get_weights()[1]
                     new_weights = [new_net.model.get_layer(index=idx).get_weights()[0], kernel_filter]
                     new_net.model.get_layer(index=idx).set_weights(new_weights)
@@ -540,12 +550,17 @@ class Network:
             idx += 1  # Flatten
             for i in drop_idxs:
                 a = nets[i[0]]
+                print('\tdense {}'.format(i))
                 for j in range(i[1] + 2, i[2] + 2):
                     w_a = a.model.get_layer(index=j).get_weights()
                     w_n = new_net.model.get_layer(index=idx).get_weights()
+                    print('\t\t {}'.format(a.model.get_layer(index=j)))
+                    print('\t\t {}'.format(new_net.model.get_layer(index=idx)))
 
-                    new_weights = w_a[0][:len(w_n[0])]
+                    new_weights = np.array(w_a[0][:len(w_n[0])])
                     if len(w_a[0]) < len(w_n[0]):
+                        print(new_weights.shape)
+                        print(np.array(w_n[0][len(new_weights):]).shape)
                         new_weights = np.concatenate((new_weights, w_n[0][len(new_weights):]), axis=0)
                     new_weights = [new_weights, w_a[1]]
 
