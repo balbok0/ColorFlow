@@ -1,21 +1,22 @@
 import copy
 
 import numpy as np
+import random
 from keras import optimizers
 from keras.callbacks import EarlyStopping, Callback
 from keras.layers import Activation, Dense, Flatten, Dropout, Conv2D, MaxPool2D
 from keras.models import Sequential, Model
-from typing import List, Dict, Union
+from typing import *
 
 from helpers import helpers
-from program_variables.program_params import debug
+from helpers.helpers_data import Array_Type
+from program_variables.program_params import debug, output_shape, input_shape
 
 
 class Network:
     """
     A wrapper class around :ref:`Model<keras.engine.training.Model>`.
     """
-    (__x_train, __y_train), (__x_val, __y_val) = (None, None), (None, None)
 
     @staticmethod
     def _set_dataset(data):
@@ -30,8 +31,11 @@ class Network:
 
     default_callbacks = [EarlyStopping(patience=5), helpers.NaNSafer()]  # type: List[Callback]
 
-    def __init__(self, architecture, copy_model=None, opt='adam', lr=None, activation='relu', callbacks=None):
-        # type: (Network, List, Model, Union[str, optimizers.Optimizer], float, str, List[Callback]) -> None
+    def __init__(
+            self, architecture, copy_model=None,
+            opt='adam', lr=None, activation='relu', callbacks=None
+    ):
+        # type: (List, Model, Union[str, optimizers.Optimizer], float, str, List[Callback]) -> None
         """
         Creates a new instance of Network.
 
@@ -193,8 +197,8 @@ class Network:
                 return optimizers.Adadelta(lr=lr)
         raise AttributeError('Invalid name of optimizer given.')
 
-    def fit(self, epochs=20, batch_size=100, shuffle='batch', verbose=0):
-        # type: (Network, int, int, str, int) -> None
+    def fit(self, x: Array_Type, y: Array_Type, validation_data: Tuple = None, validation_split: float = 0.,
+            epochs: int = 20, initial_epoch: int = 0, batch_size: int = 32, shuffle: str = 'batch', verbose: int = 0):
         """
         Trains a network on a training set.
         For paramaters descriptions look at documentation for keras.models.Model.fit function.
@@ -202,37 +206,54 @@ class Network:
         self.__prev_score = self.__score
         self.__prev_weights = copy.deepcopy(self.model.get_weights())
         self.__score = 0.  # Resets score, so it will not collide w/ scoring it again (but w/ different weights).
-        if Network.__x_train is None or Network.__x_val is None or Network.__y_train is None or Network.__y_val is None:
-            from helpers.helpers_data import prepare_data
-            prepare_data()
+
         if debug:
             print(self.get_config())
-        self.model.fit(
-            x=Network.__x_train, y=Network.__y_train, epochs=epochs, batch_size=batch_size, shuffle=shuffle,
-            callbacks=self.callbacks,
-            validation_data=(Network.__x_val, Network.__y_val),
-            verbose=verbose
-        )
 
-    def score(self, f=None):
-        # type: (Network, function) -> float
+        if validation_data is not None:
+            self.model.fit(
+                x=x, y=y, epochs=epochs, batch_size=batch_size, shuffle=shuffle,
+                callbacks=self.callbacks,
+                validation_data=validation_data,
+                initial_epoch=initial_epoch,
+                verbose=verbose
+            )
+        elif 0. < validation_split < 1.:
+            self.model.fit(
+                x=x, y=y, epochs=epochs, batch_size=batch_size, shuffle=shuffle,
+                callbacks=self.callbacks,
+                validation_split=validation_split,
+                initial_epoch=initial_epoch,
+                verbose=verbose
+            )
+        else:
+            self.model.fit(
+                x=x, y=y, epochs=epochs, batch_size=batch_size, shuffle=shuffle,
+                callbacks=self.callbacks,
+                initial_epoch=initial_epoch,
+                verbose=verbose
+            )
+
+    def score(self, y_true, y_score, f=None):
+        # type: (np.ndarray, np.ndarray, function) -> float
         """
         Scores a network on a given function/metric.
 
+        :param y_true: Target values of y. Has to match f shape requirements (binary class matrix, if f not defined).
+        :param y_score: Values of y to be scored. Has to match f shape requirements, or y_true shape.
         :param f: Function to score a function on. If not given a Area Under ROC Curve is used as a metric.
         :return: Returns a score of this network on given function/metric.
         """
         import inspect
 
-        if f is None:
-            f = helpers.multi_roc_score
+        f = f or helpers.multi_roc_score
 
         args = inspect.getfullargspec(f).args
         if not ('y_true' in args and 'y_score' in args):
             raise AttributeError('Given function f, should have parameters y_true and y_score.')
 
         if self.__score == 0.0:
-            self.__score = f(y_true=self.__y_val, y_score=self.model.predict(self.__x_val))
+            self.__score = f(y_true=y_true, y_score=y_score)
 
         if self.__score < self.__prev_score:
             self.__score = self.__prev_score
@@ -242,8 +263,13 @@ class Network:
 
         return self.__score
 
-    def save(self, file_path, overwrite=True):
-        # type: (Network, str, bool) -> None
+    def predict(self, x: List) -> List:
+        """
+        Look at keras.models.Model.predict function docs.
+        """
+        return self.model.predict(x)
+
+    def save(self, file_path: str, overwrite: bool = True):
         """
         Given path, saves a network.
 
@@ -252,7 +278,7 @@ class Network:
         """
         self.model.save(filepath=file_path, overwrite=overwrite)
 
-    def __create_model(self):
+    def __create_model(self) -> None:
         """
         With already set architecture, translates it into actual keras model.
         Also compiles it, so that an actual model is ready to use.
@@ -262,12 +288,9 @@ class Network:
 
         self.__model_created = True
 
-        if Network.__x_train is None or Network.__x_val is None or Network.__y_train is None or Network.__y_val is None:
-            raise Exception('Please prepare data before. creating a new model.')
-
         assert hasattr(self.arch, "__getitem__")
         assert isinstance(self.model, Sequential)
-        self.model.add(Activation(activation='linear', input_shape=list(Network.__x_train[0].shape)))
+        self.model.add(Activation(activation='linear', input_shape=input_shape.fget()))
 
         last_max_pool = True
         last_dropout = True
@@ -311,11 +334,10 @@ class Network:
 
         if len(self.model.output_shape) > 2:
             self.model.add(Flatten())
-        self.model.add(Dense(units=len(Network.__y_train[0]), activation='sigmoid'))
+        self.model.add(Dense(units=output_shape.fget(), activation='sigmoid'))
         self.model.compile(optimizer=self.opt, loss='categorical_crossentropy', metrics=['accuracy'])
 
-    def get_config(self):
-        # type: () -> Dict[str, ]
+    def get_config(self) -> Dict[str, Any]:
         """
         :return: A dictionary, which specifies configuration of this network. It contains:\n
             #. architecture - a list of layers in a network.
@@ -338,3 +360,248 @@ class Network:
             'score': self.__score,
             'callbacks': self.callbacks
         }
+
+    @staticmethod
+    def mutate(base_net_1, base_net_2, change_number_cap=3):
+        # type: (Network, Network, int) -> List[Network]
+        """
+        Creates and returns two new Networks, based on passed in parent Networks.
+
+        :param base_net_1: A first parent network on which mutation is based.
+        :param base_net_2: A second parent network on which mutation is based.
+        :param change_number_cap: Cap number of a random changes in case of random mutations.
+        :return: List of 2 Networks, which are based on passed in parent Networks.
+        """
+        from program_variables.program_params import parent_to_rand_chance
+
+        if random.random() < 0.:  # TODO: CHANGE BACK TO: parent_to_rand_chance
+            return [
+                Network._mutate_random(base_net_1, change_number_cap=change_number_cap),
+                Network._mutate_random(base_net_2, change_number_cap=change_number_cap)
+            ]
+
+        elif random.random() < 0.:
+            return Network._mutate_parent(base_net_1, base_net_2)
+        else:
+            return Network._mutate_parent_2(base_net_1, base_net_2)
+
+    @staticmethod
+    def _mutate_parent(base_net_1, base_net_2):
+        # type: (Network, Network) -> List[Network]
+        """
+        Creates two new Networks, both based on combination of given parents.
+
+        :param base_net_1: A first parent network on which mutation is based.
+        :param base_net_2: A second parent network on which mutation is based.
+        :return: List of 2 Networks, both of which have features of both parent Networks.
+        """
+        dense_idx_1, weight_idx_1 = helpers.find_first_dense(base_net_1.model)
+        dense_idx_2, weight_idx_2 = helpers.find_first_dense(base_net_2.model)
+        dense_idx_1 -= 2
+        dense_idx_2 -= 2
+
+        conv_1 = Network(
+            architecture=base_net_1.arch[:dense_idx_1] + base_net_2.arch[dense_idx_2:],
+            opt=base_net_2.opt,
+            activation=base_net_2.act,
+            callbacks=base_net_2.callbacks
+        )
+
+        conv_2 = Network(
+            architecture=base_net_2.arch[:dense_idx_2] + base_net_1.arch[dense_idx_1:],
+            opt=base_net_1.opt,
+            activation=base_net_1.act,
+            callbacks=base_net_1.callbacks
+        )
+
+        conv_1.model.set_weights(  # Set Conv-Max weights
+            base_net_1.model.get_weights()[:weight_idx_1] + conv_1.model.get_weights()[weight_idx_1:]
+        )
+        conv_1.model.set_weights(  # Set Dense-Drop weights
+            conv_1.model.get_weights()[:weight_idx_1 + 1] + base_net_2.model.get_weights()[weight_idx_2 + 1:]
+        )
+
+        conv_2.model.set_weights(  # Set Conv-Max weights
+            base_net_2.model.get_weights()[:weight_idx_2] + conv_2.model.get_weights()[weight_idx_2:]
+        )
+        conv_2.model.set_weights(  # Set Dense-Drop weights
+            conv_2.model.get_weights()[:weight_idx_2 + 1] + base_net_1.model.get_weights()[weight_idx_1 + 1:]
+        )
+        return [conv_1, conv_2]
+
+    @staticmethod
+    def _mutate_parent_2(base_net_1, base_net_2):
+        # type: (Network, Network) -> List[Network]
+        """
+        Creates two new Networks, both based on combination of given parents.
+        More random than :ref:`main _mutate_parent<mutator.__Mutator#_mutate_parent>`.
+
+        :param base_net_1: A first parent network on which mutation is based.
+        :param base_net_2: A second parent network on which mutation is based.
+        :return: List of 2 Networks, both of which have features of both parent Networks.
+        """
+        new_nets = []
+        for _ in range(2):
+            max_seq_start_idx = 0
+            drop_seq_start_idx = helpers.find_first_dense(base_net_2.model)[0] - 2
+            idx = 0
+            max_seq_idx = []
+            drop_seq_idx = []
+
+            for l in base_net_1.arch:
+                if helpers.arch_type(l) == 'max':
+                    max_seq_idx.append((0, max_seq_start_idx, idx))
+                    max_seq_start_idx = idx + 1
+                elif helpers.arch_type(l) in ['drop', 'dense']:
+                    if max_seq_start_idx != idx:
+                        max_seq_idx.append((0, max_seq_start_idx, idx - 1))
+                    break
+                idx += 1
+
+            for l in base_net_1.arch[idx:]:
+                if helpers.arch_type(l) == 'drop':
+                    drop_seq_idx.append((0, drop_seq_start_idx, idx))
+                    drop_seq_start_idx = idx + 1
+                idx += 1
+
+            if helpers.arch_type(base_net_1.arch[-1]) != 'drop':
+                drop_seq_idx.append((0, drop_seq_start_idx, len(base_net_1.arch) - 1))
+
+            n_max_seq = [len(max_seq_idx)]
+            n_drop_seq = [len(drop_seq_idx)]
+
+            idx = 0
+            max_seq_start_idx = 0
+            drop_seq_start_idx = helpers.find_first_dense(base_net_2.model)[0] - 2
+
+            for l in base_net_2.arch:
+                if helpers.arch_type(l) == 'max':
+                    max_seq_idx.append((1, max_seq_start_idx, idx))
+                    max_seq_start_idx = idx + 1
+                elif helpers.arch_type(l) in ['drop', 'dense']:
+                    if max_seq_start_idx != idx:
+                        max_seq_idx.append((1, max_seq_start_idx, idx - 1))
+                    break
+                idx += 1
+            print(max_seq_idx)
+            for l in base_net_2.arch[idx:]:
+                if helpers.arch_type(l) == 'drop':
+                    drop_seq_idx.append((1, drop_seq_start_idx, idx))
+                    drop_seq_start_idx = idx + 1
+                idx += 1
+            if helpers.arch_type(base_net_2.arch[-1]) != 'drop':
+                drop_seq_idx.append((1, drop_seq_start_idx, len(base_net_2.arch) - 1))
+            print(drop_seq_idx)
+            n_max_seq = random.choice(n_max_seq + [len(max_seq_idx) - n_max_seq[0], int(len(max_seq_idx) / 2)])
+            n_max_seq = max(1, n_max_seq)
+            n_drop_seq = random.choice(n_drop_seq + [len(drop_seq_idx) - n_drop_seq[0], int(len(drop_seq_idx) / 2)])
+            n_drop_seq = max(1, n_drop_seq)
+
+            archs = [base_net_1.arch, base_net_2.arch]
+            new_arch = []
+
+            max_idxs = []
+            tmp = np.random.choice(np.arange(1, len(max_seq_idx), dtype='int'),
+                                   size=n_max_seq, replace=n_max_seq <= len(max_seq_idx))
+            for i in tmp:
+                max_idxs.append(max_seq_idx[i])
+            drop_idxs = []
+            tmp = np.random.choice(np.arange(1, len(drop_seq_idx), dtype='int'),
+                                   size=n_drop_seq, replace=n_drop_seq <= len(drop_seq_idx))
+            for i in tmp:
+                drop_idxs.append(drop_seq_idx[i])
+            for i in max_idxs:
+                a = archs[i[0]]
+                new_arch += a[i[1]:i[2] + 1]
+
+            for i in drop_idxs:
+                a = archs[i[0]]
+                new_arch += a[i[1]:i[2] + 1]
+
+            new_net = Network(
+                architecture=new_arch,
+                callbacks=random.choice([base_net_1.callbacks, base_net_2.callbacks]),
+                opt=random.choice([base_net_1.opt, base_net_2.opt]),
+                activation=random.choice([base_net_1.act, base_net_2.act])
+            )
+
+            nets = [base_net_1, base_net_2]  # type: List[Network]
+
+            print('')
+            print('Net 1: {}'.format(base_net_1.arch))
+            print('Net 2: {}'.format(base_net_2.arch))
+            print('New net: {}'.format(new_net.arch))
+
+            idx = 1
+            for i in max_idxs:
+                a = nets[i[0]]
+                print('\tmax {}'.format(i))
+                for j in range(i[1] + 1, i[2] + 1):
+                    print('\t\t{}'.format(new_net.model.get_layer(index=idx)))
+                    print('\t\t{}'.format(a.model.get_layer(index=j)))
+                    print('\t\tfilter {}'.format(np.array(a.model.get_layer(index=j).get_weights()[1]).shape))
+                    print('\t\trest {}'.format(np.array(new_net.model.get_layer(index=idx).get_weights()[0]).shape))
+                    kernel_filter = a.model.get_layer(index=j).get_weights()[1]
+                    new_weights = [new_net.model.get_layer(index=idx).get_weights()[0], kernel_filter]
+                    new_net.model.get_layer(index=idx).set_weights(new_weights)
+                    idx += 1
+                idx += 1  # for MaxPool
+
+            idx += 1  # Flatten
+            for i in drop_idxs:
+                a = nets[i[0]]
+                print('\tdense {}'.format(i))
+                for j in range(i[1] + 2, i[2] + 2):
+                    w_a = a.model.get_layer(index=j).get_weights()
+                    w_n = new_net.model.get_layer(index=idx).get_weights()
+                    print('\t\t {}'.format(a.model.get_layer(index=j)))
+                    print('\t\t {}'.format(new_net.model.get_layer(index=idx)))
+
+                    new_weights = np.array(w_a[0][:len(w_n[0])])
+                    if len(w_a[0]) < len(w_n[0]):
+                        print(new_weights.shape)
+                        print(np.array(w_n[0][len(new_weights):]).shape)
+                        new_weights = np.concatenate((new_weights, w_n[0][len(new_weights):]), axis=0)
+                    new_weights = [new_weights, w_a[1]]
+
+                    new_net.model.get_layer(index=idx).set_weights(new_weights)
+                    idx += 1
+                idx += 1  # for Dropout
+
+            new_nets += [new_net]
+        return new_nets
+
+    @staticmethod
+    def _mutate_random(base_net, change_number_cap=3):
+        # type: (Network, int) -> Network
+        """
+        Given a network, returns a new Network, with a random number of mutations (capped at given number).
+
+        :param base_net: A network to which mutations should be based. It's not affected.
+        :param change_number_cap: Maximal number of changes.
+        :return: A new, mutated Network.
+        """
+        from helpers import helpers_mutate
+
+        possible_changes = [
+            helpers_mutate.add_dense_drop,
+            helpers_mutate.add_conv_max,
+            helpers_mutate.remove_dense_drop,
+            helpers_mutate.remove_conv_max,
+            helpers_mutate.change_opt,
+            helpers_mutate.change_activation,
+            helpers_mutate.change_lr_schedule
+        ]
+
+        probabilities = [10, 9, 7, 7, 4, 5, 2]
+        probabilities = np.divide(probabilities, 1. * np.sum(probabilities))  # Normalization, for probabilities.
+
+        # Number of changes is capped, and distributed exponentially.
+        n_of_changes = int(1 + np.random.exponential())
+        if n_of_changes > change_number_cap:
+            n_of_changes = change_number_cap
+
+        for i in range(n_of_changes):
+            base_net = np.random.choice(possible_changes, p=probabilities)(base_net)
+
+        return base_net

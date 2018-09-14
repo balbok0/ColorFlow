@@ -1,32 +1,9 @@
-from mutator import Mutator
 from network import Network
-from program_variables import program_params
-from helpers.helpers_data import prepare_data
-# Start
-# When a new requirement is added tbd on the beginning of workings of mutator/network, please include that fn call
-# here, so that it's not repeated in every test.
-
-prepare_data('testing')
-m = Mutator()
-n = Network(architecture=[((3, 3), 32), ((3, 3), 32), ((3, 3), 32), 'max', 30, 30, 'drop0.4', 10])
-program_params.debug = True
 
 
-# End of Start.
 def check_drop_last_in_arch():
     n2 = Network(architecture=[((3, 3), 32), 'max', ((5, 5), 6), 32, 'drop0.4'], opt='sgd', activation='relu')
     assert not (isinstance(n2.arch[-1], str) and n2.arch[-1].startswith('drop'))
-
-
-def check_nans():
-    pass
-    # from mutator import Mutator
-    # print('')
-    # print('check_nans start')
-    # _m = Mutator()
-    # print(_m.get_best_architecture(verbose=1, dataset='testing', population_size=6, generations=20))
-    # print('check_nans end')
-    # print('')
 
 
 def check_add_conv_max_seq():
@@ -104,10 +81,17 @@ def check_mutate_parent():
         [((3, 3), 16), ((7, 7), 16), 'max', ((3, 3), 16), ((3, 3), 16), ((3, 3), 16), 'max', ((3, 3), 8),
          32, 'drop0.30', 128, 'drop0.30', 32]
     )
-    print([i.arch for i in m._mutate_parent(n1, n2)])
+    print([i.arch for i in Network._mutate_parent(n1, n2)])
 
 
-def aaaaacheck_mutate_parent_2():
+def check_mutate_parent_2():
+    n1 = Network(
+        [((3, 3), 16), 32, 'drop0.30', 128, 'drop0.30', 32]
+    )
+    n2 = Network(
+        [((3, 3), 16), 32, 'drop0.30', 32]
+    )
+    print([i.arch for i in Network._mutate_parent_2(n1, n2)])
     n1 = Network(
         [((3, 3), 16), ((7, 7), 16), 'max', ((3, 3), 16), ((3, 3), 16), ((3, 3), 16), 'max', ((3, 3), 8),
          32, 'drop0.30', 128, 'drop0.30', 32]
@@ -116,13 +100,21 @@ def aaaaacheck_mutate_parent_2():
         [((3, 3), 16), ((7, 7), 16), 'max', ((3, 3), 16), ((3, 3), 16), ((3, 3), 16), 'max', ((3, 3), 8),
          32, 'drop0.30', 128, 'drop0.30', 32]
     )
-    print([i.arch for i in m._mutate_parent_2(n1, n2)])
+    print([i.arch for i in Network._mutate_parent_2(n1, n2)])
 
 
 def main():
     """
     Always calls all the functions in this file, in alphabetical order. Does not call itself.
     """
+    from program_variables import program_params
+    from helpers.helpers_data import prepare_data
+
+    x, y = prepare_data('testing', first_time=False)
+    program_params.input_shape.fset(x.shape[1:])
+    program_params.output_shape.fset(len(y[0]))
+    program_params.debug = True
+
     import sys
     import inspect
 

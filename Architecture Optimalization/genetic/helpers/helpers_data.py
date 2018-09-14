@@ -5,8 +5,8 @@ import numpy as np
 import program_variables.program_params as const
 from keras.utils.io_utils import HDF5Matrix
 
-from network import Network
 Array_Type = Union[HDF5Matrix, np.ndarray]
+XY_Type = Union[Array_Type, Union[Array_Type]]
 
 
 def get_memory_size(hdf5_data_set, n_samples=None):
@@ -63,8 +63,7 @@ def __get_masks(x_shape, y):
     return indexes_x, indexes_y
 
 
-def prepare_data(dataset='colorflow', first_time=True):
-    # type: (Union[str, Tuple], bool) -> None
+def prepare_data(dataset: str='colorflow', first_time: bool=True) -> Tuple:
     """
     Prepares a dataset of a choice, and returns it in form of pair of tuples, containg training and validation datasets.
 
@@ -72,10 +71,9 @@ def prepare_data(dataset='colorflow', first_time=True):
             #. cifar10   - 'cifar' or 'cifar10'
             #. mnist     - 'mnist'
             #. colorflow - 'colorflow', 'this', 'project'
-            #. testing   - 'testing' - a smaller colorflow dataset, for debug purposes. <br>
-            OR a Tuple representing either (x_train, y_train), (x_val, y_val) or just (x_train, y_train).
+            #. testing   - 'testing' - a smaller colorflow dataset, for debug purposes.
     :param first_time: Whether a validation dataset should be returned too, or not.
-                        If called for the first time, should be returned. If not, can be avoided for better performence.
+                        If called for the first time, should be 'True'. If not, can be avoided for better performence.
     :return: (x_train, y_train), (x_val, y_val),
                 each being of type np.ndarray, or HDF5Matrix, depending on memory space.
                 x_train - is a input to nn, on which neural network can be trained.
@@ -100,7 +98,7 @@ def prepare_data(dataset='colorflow', first_time=True):
             from keras.datasets import mnist
             from keras.utils.np_utils import to_categorical
 
-            (x_train, y_train), (x_val, y_val) = mnist.load_data()
+            (x_train, y_train), (x_val, y_val) = mnist.load_data()  # type: Array_Type
             x_train = np.reshape(x_train, list(np.array(x_train).shape) + [1])
             x_val = np.reshape(x_val, list(np.array(x_val).shape) + [1])
             y_train = to_categorical(y_train)
@@ -110,7 +108,7 @@ def prepare_data(dataset='colorflow', first_time=True):
             from keras.datasets import cifar10
             from keras.utils.np_utils import to_categorical
 
-            (x_train, y_train), (x_val, y_val) = cifar10.load_data()
+            (x_train, y_train), (x_val, y_val) = cifar10.load_data()  # type: Array_Type
             y_train = to_categorical(y_train[:2500])
             y_val = to_categorical(y_val[:2500])
             x_train = x_train[:2500, ...]
@@ -143,18 +141,18 @@ def prepare_data(dataset='colorflow', first_time=True):
             # Available memory for training
             if memory_cost < psutil.virtual_memory().available - psutil.virtual_memory().total * 0.15:
                 with h5.File(fname) as hf:
-                    x_train = np.array([])
+                    x_train = np.array([])  # type: Array_Type
                     for i in range(int(len(hf['train/x'])/const.n_train) + 1):
                         x_train = np.concatenate((x_train,
                                                   hf['train/x'][i * const.n_train: (i + 1) * const.n_train]
                                                   [indexes_x[i * const.n_train: (i + 1) * const.n_train]]))
                     x_train = np.reshape(x_train, [int(len(x_train) / np.prod(x_sing_shape))] + x_sing_shape)
-                    y_train = to_categorical(hf['train/y'][indexes_y], n_classes)
+                    y_train = to_categorical(hf['train/y'][indexes_y], n_classes)  # type: Array_Type
 
             else:  # data too big for memory.
-                x_train = HDF5Matrix(fname, 'train/x')[indexes_x]
+                x_train = HDF5Matrix(fname, 'train/x')[indexes_x]  # type: Array_Type
                 x_train = np.reshape(x_train, [int(len(x_train) / np.prod(x_sing_shape))] + x_sing_shape)
-                y_train = to_categorical(HDF5Matrix(fname, 'train/y')[indexes_y], n_classes)
+                y_train = to_categorical(HDF5Matrix(fname, 'train/y')[indexes_y], n_classes)  # type: Array_Type
 
             if first_time:
                 with h5.File(fname) as hf:
@@ -176,19 +174,7 @@ def prepare_data(dataset='colorflow', first_time=True):
         else:
             raise AttributeError('Invalid name of dataset.')
 
-        const.input_dim.fset(len(x_train.shape[1:]))
-        if const.input_dim.fget() >= 2:
-            const.max_layers_limit.fset(int(np.log2(x_train.shape[1])))
-
         if first_time:
-            Network._set_dataset(((x_train, y_train), (x_val, y_val)))
+            return (x_train, y_train), (x_val, y_val)
         else:
-            Network._set_dataset((x_train, y_train))
-
-    elif isinstance(dataset, Tuple):
-        if len(dataset) == 2:
-            Network._set_dataset(dataset)
-        else:
-            raise AttributeError('Invalid shape of dataset.')
-    else:
-        raise AttributeError('Invalid type of dataset.')
+            return x_train, y_train

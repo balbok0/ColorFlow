@@ -195,7 +195,10 @@ TODO: Limit number of things printed under debug (make a third mode of debugging
     - 01/09 - Done, created add sequences based only on arch.
     - 02/09 - Implemented in creating new networks.
 
-TODO: Reorganize code in different branch. Specifically mutator.
+10-14/09: Reorganize code in different branch. Specifically mutator.
+    - 10/09 - Branched out arch-opt-reorganize, and started migrating methods as described in commits.
+    - 14/09 - Merge back to master. However, still need to implement function which can change train data each generation.
+                Also, there's a rare bug in the mutate_parent_2 with copying weights over sometimes.
 
 TODO: README, and migrate to a different repo than main ColorFlow.
 
