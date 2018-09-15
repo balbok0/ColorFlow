@@ -44,7 +44,7 @@ class Mutator(object):
         self.__train_data_generator = None  # type: function
         self.__train_data_generator_arg = []
         if generator_f:
-            self.change_training_dataset_over_time(generator_f, generator_args)
+            self.set_dataset_generator(generator_f, generator_args)
 
     def evolve(
             self, x: Array_Type, y: Array_Type, validation_data: Tuple=None, validation_split: float=None,
@@ -200,7 +200,8 @@ class Mutator(object):
         )
         return best_net.model
 
-    def set_dataset_generator(self, f=None, f_args=[]):
+    def set_dataset_generator(self, f=None, f_args=None):
+        f_args = f_args or []
         from helpers.helpers_data import prepare_data
         f = f or prepare_data
         self.__train_data_generator = f
