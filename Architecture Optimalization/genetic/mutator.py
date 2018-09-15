@@ -13,26 +13,43 @@ from program_variables import program_params as const
 
 
 class Mutator(object):
-    def __init__(self, population_size: int=10, starting_population: List[Network]=None, params: Dict=None):
+    def __init__(self, population_size: int=10, starting_population: List[Network]=None, params: Dict=None,
+                 generator_f: function= None, generator_args: List=None):
         """
         Creates a new instance of Mutator.
 
-        :param params: A dictionary of choices which can modify the network.
+        :param population_size: Size of population of networks in this generator.
+        :param starting_population: Optional. If you want to start from specified networks pass them here as list.
+                It can have any length, but if more: only first 'population_size' will be used, and if less
+                random networks will be generated to match 'population_size'.
+        :param params: Optional. Parameters which specify possible modifications of networks.
+        :param generator_f: Optional. If you want to change training dataset on each generation,
+                than pass in function which can do generate it. Make sure bool(generator_f) evaluates to true.
+        :param generator_args: Optional. If generator_f you passed in requires some arguments pass them in as list.
         """
         assert population_size > 0
 
+        generator_args = generator_args or []
+
         if params is not None:
-            const.mutations.fset(params)
             for i in ['kernel_size', 'conv_filers', 'dropout', 'dense_size', 'optimizer', 'optimizer_lr', 'activation']:
                 assert i in list(params.keys()), "There should be %s in params keys." % i
                 assert isinstance(params[i], list), "Key %s should be pointing to the list." % i
 
-        self.networks = starting_population or []  # type: List[Network]
+            const.mutations.fset(params)
+
+        self.networks = starting_population[:population_size] or []  # type: List[Network]
         self.population_size = population_size
+
+        self.__train_data_generator = None  # type: function
+        self.__train_data_generator_arg = []
+        if generator_f:
+            self.change_training_dataset_over_time(generator_f, generator_args)
 
     def evolve(
             self, x: Array_Type, y: Array_Type, validation_data: Tuple=None, validation_split: float=None,
-            generations: int=20, save_each_generation_best: bool=True, saving_dir: str=None, save_best: bool=True,
+            use_generator: bool=False, generations: int=20,
+            save_each_generation_best: bool=True, saving_dir: str=None, save_best: bool=True,
             epochs: int=2, initial_epoch: int=1, batch_size: int=32, shuffle: str='batch', verbose: int=0
     ) -> Model:
         """
@@ -44,6 +61,8 @@ class Mutator(object):
         :param y: Expected training output of the network.
         :param validation_data: Tuple of (Validation input, Validation output). Overrides validation_split.
         :param validation_split: float between 0 and 1. Overriden by validation data.
+        :param use_generator: Whether to generate training data after each generation.
+                Make sure generator is specified (set_dataset_generator, or specify generator_f in constructor).
         :param generations: Number of generations.
         :param save_each_generation_best: If true, aves the best network from each generation in specified 'saving_dir'.
         :param save_best: If true, saves the best network at the end of lat generation.
@@ -153,6 +172,13 @@ class Mutator(object):
 
             if not i + 1 == generations:
                 self.__mutate_networks(scores, self.population_size)
+                if use_generator:
+                    if self.__train_data_generator:
+                        x, y = self.__train_data_generator(self.__train_data_generator_arg)
+                    else:
+                        from warnings import warn
+                        warn('Generator not used. Since it\'s not specified. If you have passed in a generator, check'
+                             'how it evaluates to bool.')
 
         best = scores.popitem()
         best_score = best[1]
@@ -173,6 +199,12 @@ class Mutator(object):
             )
         )
         return best_net.model
+
+    def set_dataset_generator(self, f=None, f_args=[]):
+        from helpers.helpers_data import prepare_data
+        f = f or prepare_data
+        self.__train_data_generator = f
+        self.__train_data_generator_arg = f_args
 
     def __mutate_networks(self, scores, population_size):
         # type: (collections.OrderedDict[Network, float], int) -> None
