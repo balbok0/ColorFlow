@@ -14,7 +14,7 @@ from program_variables import program_params as const
 
 class Mutator(object):
     def __init__(self, population_size: int=10, starting_population: List[Network]=None, params: Dict=None,
-                 generator_f: function= None, generator_args: List=None):
+                 generator_f=None, generator_args: List=None):
         """
         Creates a new instance of Mutator.
 
@@ -30,6 +30,7 @@ class Mutator(object):
         assert population_size > 0
 
         generator_args = generator_args or []
+        starting_population = starting_population or []
 
         if params is not None:
             for i in ['kernel_size', 'conv_filers', 'dropout', 'dense_size', 'optimizer', 'optimizer_lr', 'activation']:
@@ -228,25 +229,32 @@ class Mutator(object):
 
         tmp_p = p
         tmp_nets = self.networks
-        for _ in range(int(np.ceil((population_size - len(self.networks))/2))):
-            if len(tmp_nets) >= 2:
-                pair = np.random.choice(tmp_nets, size=2, replace=False, p=tmp_p)
-                for i_pair in called_pairs:
-                    if all(elem in pair for elem in i_pair):
-                        for j in pair:
-                            idx = list(tmp_nets).index(j)
-                            tmp_p = np.concatenate((tmp_p[:idx], tmp_p[idx + 1:]), axis=0)
-                            tmp_nets = np.concatenate((tmp_nets[:idx], tmp_nets[idx + 1:]), axis=0)
-                        tmp_p = np.divide(tmp_p, sum(tmp_p))
-                        _ -= 1
 
-                else:
-                    called_pairs += [pair]
-                    new_nets += Network.mutate(pair[0], pair[1])
-            elif tmp_nets:
-                new_nets += [Network._mutate_random(tmp_nets[0])]
-                tmp_p = p
-                tmp_nets = self.networks
+        if len(const.input_shape.fget()) > 2:
+            for _ in range(int(np.ceil((population_size - len(self.networks))/2))):
+                if len(tmp_nets) >= 2:
+                    pair = np.random.choice(tmp_nets, size=2, replace=False, p=tmp_p)
+                    for i_pair in called_pairs:
+                        if all(elem in pair for elem in i_pair):
+                            for j in pair:
+                                idx = list(tmp_nets).index(j)
+                                tmp_p = np.concatenate((tmp_p[:idx], tmp_p[idx + 1:]), axis=0)
+                                tmp_nets = np.concatenate((tmp_nets[:idx], tmp_nets[idx + 1:]), axis=0)
+                            tmp_p = np.divide(tmp_p, sum(tmp_p))
+                            _ -= 1
+
+                    else:
+                        called_pairs += [pair]
+                        new_nets += Network.mutate(pair[0], pair[1])
+                elif tmp_nets:
+                    new_nets += [Network._mutate_random(tmp_nets[0])]
+                    tmp_p = p
+                    tmp_nets = self.networks
+
+        else:
+            for _ in range(population_size - len(self.networks)):
+                new_nets += [Network._mutate_random(np.random.choice(tmp_nets, p=tmp_p), 5)]
+
         for net in new_nets[:population_size - len(self.networks)]:
             self.networks.append(net)
 

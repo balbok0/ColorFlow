@@ -192,7 +192,6 @@ def add_conv_max(base_net: Network, conv_num: int=3) -> Network:
     idx_add = random.choice(max_idx)
     conv_params = (random.choice(const.mutations.fget()['kernel_size']),
                    random.choice(const.mutations.fget()['conv_filters']))
-
     return __add_conv_max(base_net, idx_add, conv_num, conv_params)
 
 
@@ -202,7 +201,6 @@ def __add_conv_max(base_net: Network, idx: int, conv_num: int, conv_params: Tupl
 
     new_arch = new_arch[:idx] + ['max'] + new_arch[idx:]
     new_model = helpers._insert_layer(new_model, helpers.arch_to_layer('max', activation=base_net.act), idx + 1)
-
     if const.debug:
         print('')
         print('__add_conv_max: outside for-loop')
@@ -259,35 +257,21 @@ def add_dense_drop(base_net: Network) -> Network:
     dense_params = random.choice(const.mutations.fget()['dense_size'])
     drop_params = 'drop%.2f' % random.choice(const.mutations.fget()['dropout'])
 
+    if const.deep_debug:
+        print('')
+        print('add_drop_dense')
+        print('idx_add: {}'.format(idx_add))
+        print('dense_params: {}'.format(dense_params))
+        print('drop_params: {}'.format(drop_params))
+        print('arch: {}'.format(base_net.arch))
+        print('')
+
     return __add_dense_drop(base_net, idx_add, dense_params, drop_params)
 
 
 def __add_dense_drop(base_net: Network, idx: int, dense_params: int, drop_params: str) -> Network:
     new_arch = base_net.arch
     new_model = base_net.model
-
-    if idx >= len(new_arch):
-        new_arch = new_arch[:idx] + [drop_params] + new_arch[idx:]
-        new_model = helpers._insert_layer(
-            new_model,
-            helpers.arch_to_layer(drop_params, activation=base_net.act),
-            idx + 2
-        )
-    else:
-        new_arch = new_arch[:idx + 1] + [drop_params] + new_arch[idx + 1:]
-        new_model = helpers._insert_layer(
-            new_model,
-            helpers.arch_to_layer(drop_params, activation=base_net.act),
-            idx + 3
-        )
-
-    if const.debug:
-        print('')
-        print('add_dense_drop: after adding dropout')
-        print('Index of adding sequence: %d' % idx)
-        print('Old arch: {}'.format(base_net.arch))
-        print('New arch: {}'.format(new_arch))
-        print('')
 
     if idx >= len(base_net.arch):
         new_arch = new_arch[:idx] + [dense_params] + new_arch[idx:]
@@ -304,9 +288,33 @@ def __add_dense_drop(base_net: Network, idx: int, dense_params: int, drop_params
             idx + 3
         )
 
+    if const.debug:
+        print('')
+        print('add_dense_drop: after adding dense')
+        print('Index of adding sequence: %d' % idx)
+        print('Old arch: {}'.format(base_net.arch))
+        print('New arch: {}'.format(new_arch))
+        print('')
+
+    if idx >= len(new_arch):
+        new_arch = new_arch[:idx + 1] + [drop_params] + new_arch[idx + 1:]
+        new_model = helpers._insert_layer(
+            new_model,
+            helpers.arch_to_layer(drop_params, activation=base_net.act),
+            idx + 3
+        )
+    else:
+        new_arch = new_arch[:idx + 2] + [drop_params] + new_arch[idx + 2:]
+        new_model = helpers._insert_layer(
+            new_model,
+            helpers.arch_to_layer(drop_params, activation=base_net.act),
+            idx + 4
+        )
+
     if const.deep_debug:
         print('')
         print('add_dense_drop: at the end')
+        print('Old arch: {}'.format(base_net.arch))
         print('New arch: {}'.format(new_arch))
         print('')
 
@@ -481,8 +489,8 @@ def __remove_dense_drop(base_net: Network, drop_idx: int) -> Network:
     )
 
 
-def add_arch_dense_drop(base_arch):
-    # type: (List[Union[str, int, Tuple[Tuple[int, int], int]]]) -> List[Union[str, int, Tuple[Tuple[int, int], int]]]
+def add_arch_dense_drop(base_arch: List[Union[str, int, Tuple[Tuple[int, int], int]]])\
+        -> List[Union[str, int, Tuple[Tuple[int, int], int]]]:
     drop_idx = []
     idx = 0
     for l in base_arch:
@@ -513,8 +521,8 @@ def add_arch_dense_drop(base_arch):
     return new_arch
 
 
-def add_arch_conv_max(base_arch, conv_num=3):
-    # type: (List[Union[str, int, Tuple]], int) -> List[Union[str, int, Tuple]]
+def add_arch_conv_max(base_arch: List[Union[str, int, Tuple[Tuple[int, int], int]]], conv_num: int=3)\
+        -> List[Union[str, int, Tuple[Tuple[int, int], int]]]:
 
     if len(const.input_shape.fget()) < 3:
         return add_arch_dense_drop(base_arch)
@@ -528,12 +536,6 @@ def add_arch_conv_max(base_arch, conv_num=3):
         if helpers.arch_type(l) == 'max':
             max_idx += [idx]
         idx += 1
-
-    if const.deep_debug:
-        print('')
-        print('add_conv_max')
-        print('max_idx: {}'.format(max_idx))
-        print('')
 
     idx = random.choice(max_idx)
     conv_params = (random.choice(const.mutations.fget()['kernel_size']),

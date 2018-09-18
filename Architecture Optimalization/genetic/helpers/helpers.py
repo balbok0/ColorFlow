@@ -93,14 +93,13 @@ def assert_model_arch_match(model, arch):
             if not arch[arch_idx] in layer_to_arch(l):
                 if const.debug:
                     print('assert_model_arch_match:')
-                    print(arch)
-                    print(arch_idx)
-                    model.summary()
+                    print('Arch: {}'.format(arch))
+                    print('Arch idx: {}'.format(arch_idx))
                     for i in range(len(model.layers)):
-                        print('\t{}  {}'.format(i, model.layers[i].get_config()))
-                    print(arch[arch_idx])
-                    print(layer_to_arch(l))
-                    print(l.get_config())
+                        print('\t{}\t{}'.format(i, model.layers[i].get_config()))
+                    print('Arch at arch idx: {}'.format(arch[arch_idx]))
+                    print('Layer at that corresponding place in model layers: {}'.format(layer_to_arch(l)))
+                    print('Config of that layer {}'.format(l.get_config()))
                     print('')
                 return False
 

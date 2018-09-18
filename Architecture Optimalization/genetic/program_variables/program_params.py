@@ -25,8 +25,8 @@ _mutations = {
 
 # Above this threshold mutations are parent ones, below are random. Range is (0, 1). Used in Mutator.
 # If set to 1, all mutations are random. If set to 0, all mutations are parent.
-parent_to_rand_chance = 0.6667
-
+parent_to_rand_chance = 0.3
+parent_1_to_parent_2_chance = 0.35
 
 # Dataset variables
 n_train = 50000
@@ -34,7 +34,7 @@ n_train = 50000
 
 # Development variables
 debug = True
-deep_debug = False
+deep_debug = True
 
 
 # ----------------------------------------------------------------------------------------

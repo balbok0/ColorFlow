@@ -188,8 +188,10 @@ TODO: Limit depth/number of weights. Include a strict weight # cap.
 
 TODO: Make a support for 1-D input too. (by making flag inp_dim?) In order to add support for 1-D input prepare_data has to be modified.
     - 01/09 - Implemented shape of input variable.
+    - 17/09 - Done some stuff. So nets can be trained, but fail on first evolution between first and second gen.
 
-TODO: Limit number of things printed under debug (make a third mode of debugging? or move some things into deep_debug)
+02/09 Limit number of things printed under debug (make a third mode of debugging? or move some things into deep_debug)
+    - Done.
 
 01-02/09: Speed up Network creation (basically base it only on arch in mutator, and then make a Network out of it).
     - 01/09 - Done, created add sequences based only on arch.
@@ -204,3 +206,9 @@ TODO: Limit number of things printed under debug (make a third mode of debugging
 TODO: README, and migrate to a different repo than main ColorFlow.
 
 TODO: Look for all github repos I was basing the code on.
+
+18/09: Bug in parent_mutation_2 with copying over weights. (Look at To-Do in Network)
+    - Nets:
+         1. Net 1: [((3, 3), 8), ((3, 3), 8), ((3, 3), 8), 'max', ((3, 3), 8), ((3, 3), 8), ((3, 3), 8), 'max', 128, 64]
+         2. Net 2: [((3, 3), 8), 64, 128, 'drop0.30', 32, 'drop0.70', 16, 'drop0.50', 64]
+    - Done
