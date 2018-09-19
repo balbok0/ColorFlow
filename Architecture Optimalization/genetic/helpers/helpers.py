@@ -440,6 +440,12 @@ def is_running_gpu():
     return 'CPU' in [x.device_type for x in device_lib.list_local_devices()]
 
 
+def find_first_drop_dense_arch(arch: List) -> int:
+    for idx, i in enumerate(arch):
+        if arch_type(i) in ['dense', 'drop']:
+            return idx
+
+
 class NaNSafer(Callback):
 
     def __init__(self):

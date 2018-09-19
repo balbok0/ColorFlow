@@ -89,7 +89,7 @@ def remove_layer(base_net: Network) -> Network:
     new_arch = base_net.arch[:layer_idx] + base_net.arch[layer_idx + 1:]
 
     layer_idx += 1  # difference between net.arch and actual architecture. - First activation layer.
-    if helpers.arch_type(layer_name) in ['dense', 'drop']:
+    if helpers.arch_type(layer_name) in ['dense', 'drop'] and len(const.input_shape.fget()) > 2:
         layer_idx += 1  # difference between net.arch and actual architecture. - Flatten layer.
 
     return Network(
@@ -240,7 +240,7 @@ def add_dense_drop(base_net: Network) -> Network:
     :return: Copy of given network, with additional sequence inserted in a position of a random dropout layer,
                 or at the beginning of 1D computations in the model.
     """
-    drop_idx = [helpers.find_first_dense(base_net.model)[0] - 3]
+    drop_idx = [helpers.find_first_drop_dense_arch(base_net.arch) - 1]
     idx = 0
     for l in base_net.arch:
         if helpers.arch_type(l) == 'drop':
@@ -273,19 +273,19 @@ def __add_dense_drop(base_net: Network, idx: int, dense_params: int, drop_params
     new_arch = base_net.arch
     new_model = base_net.model
 
-    if idx >= len(base_net.arch):
-        new_arch = new_arch[:idx] + [dense_params] + new_arch[idx:]
+    if len(const.input_shape.fget()) > 2:
+        new_arch = new_arch[:idx + 1] + [dense_params] + new_arch[idx + 1:]
         new_model = helpers._insert_layer(
             new_model,
             helpers.arch_to_layer(dense_params, activation=base_net.act),
-            idx + 2
+            idx + 3
         )
     else:
         new_arch = new_arch[:idx + 1] + [dense_params] + new_arch[idx + 1:]
         new_model = helpers._insert_layer(
             new_model,
             helpers.arch_to_layer(dense_params, activation=base_net.act),
-            idx + 3
+            idx + 2
         )
 
     if const.debug:
@@ -296,19 +296,20 @@ def __add_dense_drop(base_net: Network, idx: int, dense_params: int, drop_params
         print('New arch: {}'.format(new_arch))
         print('')
 
-    if idx >= len(new_arch):
-        new_arch = new_arch[:idx + 1] + [drop_params] + new_arch[idx + 1:]
-        new_model = helpers._insert_layer(
-            new_model,
-            helpers.arch_to_layer(drop_params, activation=base_net.act),
-            idx + 3
-        )
-    else:
+    if len(const.input_shape.fget()) > 2:
         new_arch = new_arch[:idx + 2] + [drop_params] + new_arch[idx + 2:]
         new_model = helpers._insert_layer(
             new_model,
             helpers.arch_to_layer(drop_params, activation=base_net.act),
             idx + 4
+        )
+
+    else:
+        new_arch = new_arch[:idx + 2] + [drop_params] + new_arch[idx + 2:]
+        new_model = helpers._insert_layer(
+            new_model,
+            helpers.arch_to_layer(drop_params, activation=base_net.act),
+            idx + 3
         )
 
     if const.deep_debug:
